@@ -1,0 +1,20 @@
+kind: pipeline
+type: docker
+name: windows-build
+
+platform:
+  os: windows
+  arch: amd64
+
+trigger:
+  event:
+    - tag
+
+steps:
+- name: build-and-package
+  image: mcr.microsoft.com/windows/servercore:ltsc2019
+  commands:
+    - powershell -File project/build-script.ps1
+  environment:
+    GITEA_TOKEN:
+      from_secret: gitea_token
