@@ -54,9 +54,29 @@ New-Item -Path $DIR_BUILD -ItemType Directory -Force
 Set-Location $DIR_PROJECT
 
 Write-Output " » Installing .NET Dependencies"
-dotnet restore
+try {
+    $RESTORE_RESULT = dotnet restore
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet restore failed with exit code $LASTEXITCODE"
+    }
+    Write-Output $RESTORE_RESULT
+}
+catch {
+    Write-Error " » FAIL: Error executing dotnet restore: $_"
+    exit 1 # Fail the build
+}
 
 Write-Output " » Running Build Task"
-dotnet build
+try {
+    $BUILD_RESULT = dotnet publish "$DIR_PROJECT\Aki.Launcher\Aki.Launcher.csproj" -c Release -f net6.0 -r win-x64 /p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed with exit code $LASTEXITCODE"
+    }
+    Write-Output $BUILD_RESULT
+}
+catch {
+    Write-Error " » FAIL: Error executing dotnet restore: $_"
+    exit 1 # Fail the build
+}
 
 Write-Output "⚡ Launcher Built ⚡"

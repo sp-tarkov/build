@@ -1,12 +1,12 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
-		"[markdown]": {
-			"editor.defaultFormatter": null
-		}
-	}
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "[markdown]": {
+            "editor.defaultFormatter": null
+        }
+    }
 }

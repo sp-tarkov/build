@@ -121,11 +121,11 @@ Set-Location $DIR_PROJECT
 
 Write-Output " » Installing .NET Dependencies"
 try {
-    $restoreResult = dotnet restore
+    $RESTORE_RESULT = dotnet restore
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet restore failed with exit code $LASTEXITCODE"
     }
-    Write-Output $restoreResult
+    Write-Output $RESTORE_RESULT
 }
 catch {
     Write-Error " » FAIL: Error executing dotnet restore: $_"
@@ -134,11 +134,11 @@ catch {
 
 Write-Output " » Running Build Task"
 try {
-    $buildResult = dotnet build
+    $BUILD_RESULT = dotnet build
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet build failed with exit code $LASTEXITCODE"
     }
-    Write-Output $buildResult
+    Write-Output $BUILD_RESULT
 }
 catch {
     Write-Error " » FAIL: Error executing dotnet build: $_"
