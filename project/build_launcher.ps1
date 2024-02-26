@@ -1,23 +1,24 @@
+# Build the Launcher project.
+
 Param(
     [Parameter(Mandatory = $true)]
     [string] $RELEASE_TAG
 )
 
-Write-Output " » Building Launcher"
+Write-Output " » Building Launcher Project"
 
 # Set directories
 $DIR_ABS = (Get-Location).Path
-$DIR = "$DIR_ABS\Launcher"
+$DIR = "$DIR_ABS\builds\Launcher"
 $DIR_PROJECT = "$DIR\project"
-$DIR_BUILD = "$DIR_PROJECT\build"
 
-# Remove the output folder if it already exists
+# Remove the build directory if it already exists
 if (Test-Path -Path $DIR) {
-    Write-Output " » Removing Previous Build Directory"
+    Write-Output " » Removing Previous Launcher Project Build Directory"
     Remove-Item -Recurse -Force $DIR
 }
 
-# Pull down the server project, at the tag, with no history
+# Pull down the launcher project, at the tag, with no history
 Write-Output " » Cloning Launcher Project"
 $REPO = "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git"
 try {
@@ -48,35 +49,22 @@ catch {
     exit 1 # Fail the build
 }
 
-# Create the any necessary subdirectories
-New-Item -Path $DIR_BUILD -ItemType Directory -Force
+# Create any necessary sub-directories
+New-Item -Path $DIR_PROJECT -ItemType Directory -Force
 
 Set-Location $DIR_PROJECT
 
-Write-Output " » Installing .NET Dependencies"
 try {
-    $RESTORE_RESULT = dotnet restore
+    $BUILD_RESULT = dotnet build --configuration release -m:1 *>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "dotnet restore failed with exit code $LASTEXITCODE"
-    }
-    Write-Output $RESTORE_RESULT
-}
-catch {
-    Write-Error " » FAIL: Error executing dotnet restore: $_"
-    exit 1 # Fail the build
-}
-
-Write-Output " » Running Build Task"
-try {
-    $BUILD_RESULT = dotnet publish "$DIR_PROJECT\Aki.Launcher\Aki.Launcher.csproj" -c Release -f net6.0 -r win-x64 /p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false
-    if ($LASTEXITCODE -ne 0) {
-        throw "dotnet publish failed with exit code $LASTEXITCODE"
+        Write-Output "Build output: $BUILD_RESULT"
+        throw "dotnet build failed with exit code $LASTEXITCODE"
     }
     Write-Output $BUILD_RESULT
 }
 catch {
-    Write-Error " » FAIL: Error executing dotnet restore: $_"
+    Write-Error " » FAIL: Error executing dotnet build: $_"
     exit 1 # Fail the build
 }
 
-Write-Output "⚡ Launcher Built ⚡"
+Write-Output "⚡ Launcher Project Built ⚡"

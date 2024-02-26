@@ -78,9 +78,9 @@ To test the build process, the following commands can be used to build the Docke
 git clone https://dev.sp-tarkov.com/SPT-AKI/Build.git C:\Code\Build
 cd C:\Code\Build
 
-# Build the Docker image
+# Build the Docker container
 docker build -t spt-build-environment .
 
-# Test the build process
+# Run the build script
 docker run --rm -v "C:\Code\Build:C:\Code" -e MODULE_DOMAIN="https://example.com" spt-build-environment powershell -File C:\Code\project\build.ps1
 ```

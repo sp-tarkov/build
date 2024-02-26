@@ -23,9 +23,11 @@ RUN git --version
 
 # Copy build scripts into the container
 COPY project/build.ps1 /Code/project/
-COPY project/build_server.ps1 /Code/project/
-COPY project/build_modules.ps1 /Code/project/
 COPY project/build_launcher.ps1 /Code/project/
+COPY project/build_modules.ps1 /Code/project/
+COPY project/build_server.ps1 /Code/project/
+COPY project/combine_builds.ps1 /Code/project/
+COPY project/tag_validate.ps1 /Code/project/
 
 # Set the working directory to /Code
 WORKDIR /Code

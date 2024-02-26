@@ -1,19 +1,21 @@
+# Build the Server project.
+
 Param(
     [Parameter(Mandatory = $true)]
     [string] $RELEASE_TAG
 )
 
-Write-Output " » Building Server"
+Write-Output " » Building Server Project"
 
-# Set directorys
+# Set directories
 $DIR_ABS = (Get-Location).Path
-$DIR = "$DIR_ABS\Server"
+$DIR = "$DIR_ABS\builds\Server"
 $DIR_PROJECT = "$DIR\project"
 $DIR_BUILD = "$DIR_PROJECT\build"
 
-# Remove the output folder if it already exists
+# Remove the build directory if it already exists
 if (Test-Path -Path $DIR) {
-    Write-Output " » Removing Previous Build Directory"
+    Write-Output " » Removing Previous Server Project Build Directory"
     Remove-Item -Recurse -Force $DIR
 }
 
@@ -43,12 +45,12 @@ try {
     }
 }
 catch {
-    $errorMessage = " » FAIL: Error Executing git clone: $_"
+    $errorMessage = " » FAIL: Error executing git clone: $_"
     Write-Error $errorMessage
     exit 1 # Fail the build
 }
 
-# Create the any necessary subdirectories
+# Create any necessary sub-directories
 New-Item -Path $DIR_BUILD -ItemType Directory -Force
 
 # Ensure we are in the correct directory
@@ -58,11 +60,17 @@ Set-Location $DIR
 git lfs fetch
 git lfs pull
 
-# Set the build type based on whether the tag matches the release regex or not.
-# A tag in the format of `1.2.3` will be considered a release build, while anything else will be considered debug.
-$BUILD_TYPE_REGEX = '^(v?\d+\.\d+\.\d+)$'
-if ($RELEASE_TAG -match $BUILD_TYPE_REGEX) {
+# Determine the build type based on the tag.
+# The 'release' pattern matches tags like '1.2.3' or 'v1.2.3'.
+# The 'bleeding' pattern matches tags like '1.2.3-BE' or 'v1.2.3-BE', case-insensitively.
+# The 'debug' pattern will be used for any tag not matching these patterns.
+$RELEASE_BUILD_REGEX = '^(v?\d+\.\d+\.\d+)$'
+$BLEEDING_BUILD_REGEX = '^(v?\d+\.\d+\.\d+-BE)$'
+if ($RELEASE_TAG -match $RELEASE_BUILD_REGEX) {
     $BUILD_TYPE = "release"
+}
+elseif ($RELEASE_TAG -match $BLEEDING_BUILD_REGEX) {
+    $BUILD_TYPE = "bleeding"
 }
 else {
     $BUILD_TYPE = "debug"
@@ -71,7 +79,7 @@ Write-Output " » Build Type: $BUILD_TYPE"
 
 Set-Location $DIR_PROJECT
 
-Write-Output " » Installing NPM Dependencies"
+Write-Output " » Installing Server Project Dependencies"
 try {
     npm install
 } catch {
@@ -79,7 +87,7 @@ try {
     exit 1
 }
 
-Write-Output " » Running Build Task"
+Write-Output " » Running Server Project Build Task"
 try {
     npm run build:$BUILD_TYPE
 } catch {
@@ -87,4 +95,4 @@ try {
     exit 1
 }
 
-Write-Output "⚡ Server Built ⚡"
+Write-Output "⚡ Server Project Built ⚡"

@@ -1,3 +1,5 @@
+# Build the Modules project.
+
 Param(
     [Parameter(Mandatory = $true)]
     [string] $RELEASE_TAG,
@@ -6,22 +8,22 @@ Param(
     [string] $MODULE_DOMAIN
 )
 
-Write-Output " » Building Modules"
+Write-Output " » Building Modules Project"
 
-# Set directorys
+# Set directories
 $DIR_ABS = (Get-Location).Path
-$DIR = "$DIR_ABS\Modules"
+$DIR = "$DIR_ABS\builds\Modules"
 $DIR_PROJECT = "$DIR\project"
 $DIR_BUILD = "$DIR_PROJECT\build"
 $DIR_MANAGED = "$DIR_PROJECT\Shared\Managed"
 
-# Remove the output folder if it already exists
+# Remove the build directory if it already exists
 if (Test-Path -Path $DIR) {
-    Write-Output " » Removing Previous Build Directory"
+	Write-Output " » Removing Previous Modules Project Build Directory"
     Remove-Item -Recurse -Force $DIR
 }
 
-# Pull down the server project, at the tag, with no history
+# Pull down the modules project, at the tag, with no history
 Write-Output " » Cloning Modules Project"
 $REPO = "https://dev.sp-tarkov.com/SPT-AKI/Modules.git"
 try {
@@ -47,12 +49,12 @@ try {
     }
 }
 catch {
-    $errorMessage = " » FAIL: Error Executing git clone: $_"
+    $errorMessage = " » FAIL: Error executing git clone: $_"
     Write-Error $errorMessage
     exit 1 # Fail the build
 }
 
-# Create the any necessary subdirectories
+# Create any necessary sub-directories
 New-Item -Path $DIR_BUILD -ItemType Directory -Force
 New-Item -Path $DIR_MANAGED -ItemType Directory -Force
 
@@ -79,64 +81,52 @@ catch {
     Write-Error " » FAIL: Error fetching or parsing core.json: $_"
     exit 1 # Fail the build
 }
-Write-Output " » Client Version: $CLIENT_VERSION fetched successfully."
+Write-Output " » Client Version $CLIENT_VERSION Fetched Successfully."
 
 # Download the module files
-Write-Output " » Downloading Client Modules"
+Write-Output " » Downloading Client Module Package"
 $DOWNLOAD_PATH = "$DIR_MANAGED\$CLIENT_VERSION.zip"
 $DOWNLOAD_URL = "$MODULE_DOMAIN/$CLIENT_VERSION.zip"
 try {
     Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $DOWNLOAD_PATH -UseBasicParsing -ErrorAction Stop
     if (-not (Test-Path -Path $DOWNLOAD_PATH) -or (Get-Item -Path $DOWNLOAD_PATH).Length -eq 0) {
-        throw "The module download does not exist or is empty."
+        throw "The module package does not exist or is empty."
     }
 }
 catch {
     Write-Error " » FAIL: Unable to download the module. Error: $_"
     exit 1 # Fail the build
 }
-Write-Output " » Download successful: $DOWNLOAD_PATH"
+Write-Output " » Download Successful: $DOWNLOAD_PATH"
 
-Write-Output " » Extracting Client Modules"
+Write-Output " » Extracting Client Module Package"
 try {
     Expand-Archive -Path $DOWNLOAD_PATH -DestinationPath $DIR_MANAGED -Force -ErrorAction Stop
-    Write-Output " » Client Modules extracted to $DIR_MANAGED"
+    Write-Output " » Client Module Package Extracted: $DIR_MANAGED"
 }
 catch {
-    Write-Error " » FAIL: Error extracting client modules: $_"
+    Write-Error " » FAIL: Error Extracting Client Module Package: $_"
     exit 1 # Fail the build
 }
 
 # Delete the modules archive now that it's been uncompressed
 try {
     Remove-Item -Path $DOWNLOAD_PATH -Force -ErrorAction Stop
-    Write-Output " » Client Modules Archive Deleted"
+    Write-Output " » Client Module Package Deleted"
 }
 catch {
-    Write-Warning " » Failed to delete ZIP file: $_"
+    Write-Warning " » Failed to Delete ZIP File: $_"
     exit 1 # Fail the build
 }
 
 Set-Location $DIR_PROJECT
 
-Write-Output " » Installing .NET Dependencies"
+Write-Output " » Running Modules Project Build Task"
 try {
-    $RESTORE_RESULT = dotnet restore
+    $BUILD_RESULT = dotnet build *>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "dotnet restore failed with exit code $LASTEXITCODE"
-    }
-    Write-Output $RESTORE_RESULT
-}
-catch {
-    Write-Error " » FAIL: Error executing dotnet restore: $_"
-    exit 1 # Fail the build
-}
-
-Write-Output " » Running Build Task"
-try {
-    $BUILD_RESULT = dotnet build
-    if ($LASTEXITCODE -ne 0) {
-        throw "dotnet build failed with exit code $LASTEXITCODE"
+        Write-Output "Build output: $BUILD_RESULT"
+		throw "dotnet build failed with exit code $LASTEXITCODE"
     }
     Write-Output $BUILD_RESULT
 }
@@ -145,4 +135,4 @@ catch {
     exit 1 # Fail the build
 }
 
-Write-Output "⚡ Modules Built ⚡"
+Write-Output "⚡ Modules Project Built ⚡"
