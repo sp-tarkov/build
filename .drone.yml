@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: windows-build
+name: build
 
 platform:
   os: windows
@@ -11,10 +11,22 @@ trigger:
     - tag
 
 steps:
-- name: build-and-package
-  image: mcr.microsoft.com/windows/servercore:ltsc2019
-  commands:
-    - powershell -File project/build-script.ps1
-  environment:
-    GITEA_TOKEN:
-      from_secret: gitea_token
+  - name: clone-build-project
+    image: alpine/git
+    commands:
+      - git clone https://dev.sp-tarkov.com/SPT-AKI/Build.git C:\Code
+      
+  - name: build-spt-release
+    image: spt-build-environment:latest
+    environment:
+      MODULE_DOMAIN:
+        from_secret: module_domain
+    commands:
+      - 'pwsh -File C:\Code\project\build.ps1 -Tag "${DRONE_TAG}"'
+    volumes:
+      - name: code
+        path: C:\Code
+
+volumes:
+  - name: code
+    temp: {}

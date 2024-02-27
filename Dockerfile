@@ -15,19 +15,8 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
 # Use Chocolatey to install Node.js and Git
 RUN choco install nodejs --version=20.10.0 -y
 RUN choco install git -y
-
-# Log Versions
-RUN node --version
-RUN npm --version
-RUN git --version
-
-# Copy build scripts into the container
-COPY project/build.ps1 /Code/project/
-COPY project/build_launcher.ps1 /Code/project/
-COPY project/build_modules.ps1 /Code/project/
-COPY project/build_server.ps1 /Code/project/
-COPY project/combine_builds.ps1 /Code/project/
-COPY project/tag_validate.ps1 /Code/project/
+RUN choco install 7zip -y
 
 # Set the working directory to /Code
+RUN mkdir -p /Code
 WORKDIR /Code
