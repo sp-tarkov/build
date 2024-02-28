@@ -7,22 +7,31 @@ platform:
   arch: amd64
 
 trigger:
-  event:
-    - tag
+  branch:
+    - main
+
+clone:
+  disable: true
 
 steps:
-  - name: clone-build-project
-    image: alpine/git
+  - name: clone
+    image: refringe/spt-build-environment:1.0.0
     commands:
       - git clone https://dev.sp-tarkov.com/SPT-AKI/Build.git C:\Code
-      
-  - name: build-spt-release
-    image: spt-build-environment:latest
+      - cd C:\Code
+      - git checkout ${DRONE_COMMIT}
+    volumes:
+      - name: code
+        path: C:\Code
+
+  - name: build
+    image: refringe/spt-build-environment:1.0.0
     environment:
       MODULE_DOMAIN:
-        from_secret: module_domain
+        from_secret: MODULE_DOMAIN
     commands:
-      - 'pwsh -File C:\Code\project\build.ps1 -Tag "${DRONE_TAG}"'
+      - cd C:\Code
+      - pwsh -File C:\Code\project\build.ps1 -Tag "${DRONE_TAG}"
     volumes:
       - name: code
         path: C:\Code
