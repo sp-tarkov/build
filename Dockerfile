@@ -7,9 +7,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory to /code
-WORKDIR /code
-
 # Add a non-root user for running the build
 RUN useradd -m builder
 USER builder
+
+WORKDIR /workspace

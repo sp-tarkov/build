@@ -10,14 +10,14 @@ jobs:
   build-server:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-environment:1.0.2
+      image: refringe/spt-build-environment:1.0.3
 
     steps:
     - name: Checkout Server Project
       uses: actions/checkout@v4
       with:
         repository: 'refringe/Server'
-        ref: 'v3.8.0-BE'
+        ref: '3.8.0-BE'
         fetch-depth: 0
         lfs: true
 
