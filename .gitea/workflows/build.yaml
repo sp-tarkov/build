@@ -21,7 +21,7 @@ jobs:
         fetch-depth: 0
 
     - name: Checkout Git LFS Objects
-      run: git lfs fetch
+      run: git lfs pull
 
     - name: Setup Node
       uses: actions/setup-node@v4.0.2
