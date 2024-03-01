@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-environment:1.0.5
-
     steps:
+
     - name: Server Cache
       id: server-cache
       uses: actions/cache@v4
@@ -30,3 +30,12 @@ jobs:
       run: |
         cd /workspace/refringe/Build/server
         git lfs pull && git lfs ls-files
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.10.0'
+
+# find build type
+# npm install
+# npm build:type
