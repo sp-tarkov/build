@@ -17,25 +17,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'refringe/Server'
-        path: 'refringe/Server'
+        path: 'server'
         ref: '3.8.0-BE'
         fetch-depth: 0
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: ./project/package.json
-
-    - name: Install Dependencies
-      run: npm install
-      working-directory: ./project
-
-    - name: Build Project
-      run: npm run build
-      working-directory: ./project
-
-    - name: Archive Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: built-artifacts
-        path: build
