@@ -14,14 +14,11 @@ jobs:
 
     steps:
     - name: Checkout Server Project
-      uses: actions/checkout@v3
-      with:
-        repository: 'refringe/Server'
-        ref: '3.8.0-BE'
-        fetch-depth: 0
+      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "3.8.0-BE" --depth 1 "./SPT-AKI/Server"
 
     - name: Checkout Git LFS Objects
       run: git lfs pull
+      working-directory: ./SPT-AKI/Server
 
     - name: Setup Node
       uses: actions/setup-node@v4
