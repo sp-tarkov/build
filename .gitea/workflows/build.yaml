@@ -17,6 +17,5 @@ jobs:
       run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/server
 
     - name: Pull Server LFS Files
-      run: git lfs pull
-      run: git lfs ls-files
+      run: git lfs pull && git lfs ls-files
       working-directory: /workspace/server
