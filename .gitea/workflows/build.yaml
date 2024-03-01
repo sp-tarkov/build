@@ -21,14 +21,14 @@ jobs:
         fetch-depth: 0
 
     - name: Checkout Git LFS Objects
-      run: git lfs checkout
+      run: git lfs fetch
 
-    - name: Setup Node & NPM
-      uses: actions/setup-node@v4
+    - name: Setup Node
+      uses: actions/setup-node@v4.0.2
       with:
         node-version: '20.10.0'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: npm install
       working-directory: ./project
 
