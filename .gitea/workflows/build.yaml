@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-server:
+  Build Server:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-environment:1.0.3
