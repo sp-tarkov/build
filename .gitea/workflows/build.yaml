@@ -10,19 +10,12 @@ jobs:
   build-server:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-environment:1.0.4
+      image: refringe/spt-build-environment:1.0.3
 
     steps:
     - name: Checkout Server Project
-      uses: actions/checkout@v4
-      with:
-        repository: 'refringe/Server'
-        path: 'server'
-        ref: '3.8.0-BE'
-        fetch-depth: 0
-        lfs: true
+      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/server
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version-file: ./project/package.json
+    - name: Pull LFS Files
+      run: git lfs pull
+      workspace: /workspace/server
