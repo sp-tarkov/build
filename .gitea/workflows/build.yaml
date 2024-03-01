@@ -14,7 +14,7 @@ jobs:
     - name: Check-out Server Project
       uses: actions/checkout@v4
       with:
-        repository: 'https://dev.sp-tarkov.com/SPT-AKI/Server.git'
+        repository: 'refringe/Server'
         fetch-depth: 0
         lfs: true
 
