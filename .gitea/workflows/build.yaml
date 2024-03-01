@@ -19,7 +19,6 @@ jobs:
         repository: 'refringe/Server'
         ref: '3.8.0-BE'
         fetch-depth: 0
-        lfs: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
