@@ -24,8 +24,9 @@ jobs:
       run: git lfs checkout
 
     - name: Setup Node & NPM
-      run: nvm use
-      working-directory: ./project
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.10.0'
 
     - name: Install dependencies
       run: npm install
