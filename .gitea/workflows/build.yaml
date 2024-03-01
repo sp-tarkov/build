@@ -16,6 +16,6 @@ jobs:
     - name: Checkout Server Project
       run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/server
 
-    - name: Pull LFS Files
+    - name: Pull Server LFS Files
       run: git lfs pull
-      workspace: /workspace/server
+      working-directory: /workspace/server
