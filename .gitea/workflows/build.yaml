@@ -7,15 +7,35 @@ on:
     branches: [ main ]
 
 jobs:
-  Build Server:
+  build-server:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-environment:1.0.3
 
     steps:
     - name: Checkout Server Project
-      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/server
+      uses: actions/checkout@v4
+      with:
+        repository: 'refringe/Server'
+        ref: '3.8.0-BE'
+        fetch-depth: 0
+        lfs: true
 
-    - name: Pull Server LFS Files
-      run: git lfs pull && git lfs ls-files
-      working-directory: /workspace/server
+    - name: Checkout Server Project
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.10'
+
+    - name: Install Dependencies
+      run: npm install
+      working-directory: ./project
+
+    - name: Build Project
+      run: npm run build
+      working-directory: ./project
+
+    - name: Archive Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: built-artifacts
+        path: build
