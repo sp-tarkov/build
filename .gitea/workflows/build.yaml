@@ -10,7 +10,7 @@ jobs:
   build-server:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-environment:latest
+      image: refringe/spt-build-environment:1.0.2
 
     steps:
     - name: Checkout Server Project
