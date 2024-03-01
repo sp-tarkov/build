@@ -10,7 +10,7 @@ jobs:
   build-server:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-environment:1.0.3
+      image: refringe/spt-build-environment:1.0.4
 
     steps:
     - name: Checkout Server Project
@@ -20,3 +20,8 @@ jobs:
         path: 'server'
         ref: '3.8.0-BE'
         fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ./project/package.json
