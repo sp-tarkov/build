@@ -20,8 +20,9 @@ jobs:
         path: 'server'
         ref: '3.8.0-BE'
         fetch-depth: 0
+        lfs: true
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v3
       with:
         node-version-file: ./project/package.json
