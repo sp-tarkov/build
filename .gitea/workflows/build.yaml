@@ -11,25 +11,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check-out Build Project
+    - name: Check-out Server Project
       uses: actions/checkout@v4
       with:
+        repository: 'https://dev.sp-tarkov.com/SPT-AKI/Server.git'
         fetch-depth: 0
+        lfs: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18.15.0'
 
-    - name: Install Node dependencies
+    - name: Install dependencies
       run: npm install
       working-directory: ./project
 
-    - name: Build Server Project
+    - name: Build Project
       run: npm run build
       working-directory: ./project
 
-    - name: Archive Server Build
+    - name: Archive Build
       uses: actions/upload-artifact@v4
       with:
         name: built-artifacts
