@@ -1,22 +1,30 @@
-## This image is configured just as the drone runner image but expected to be run locally for
-## rapid development and testing. It is not intended to be used in production.
+# Use the .NET 6.0 SDK base image
+FROM mcr.microsoft.com/dotnet/sdk:6.0
 
-# Start with the .NET 6.0 SDK Windows Server Core base image
-FROM mcr.microsoft.com/dotnet/sdk:6.0-windowsservercore-ltsc2022
+# Install necessary tools and dependencies
+# - wget (for downloading NVM)
+# - git & git-lfs
+RUN apt-get update && \
+    apt-get install -y wget git git-lfs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Use PowerShell
-SHELL ["powershell", "-Command"]
+# Install NVM and use Node v20.10.0 by default
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION v20.10.0
+RUN mkdir -p $NVM_DIR && \
+    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+    . $NVM_DIR/nvm.sh && \
+    nvm install $NODE_VERSION && \
+    nvm use $NODE_VERSION && \
+    nvm alias default $NODE_VERSION
 
-# Install Chocolatey package manager
-RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
-    iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+# Ensure node and npm are available in the PATH
+ENV PATH $NVM_DIR/versions/node/$(nvm version)/bin:$PATH
 
-# Use Chocolatey to install Node.js and Git
-RUN choco install nodejs --version=20.10.0 -y
-RUN choco install git -y
-RUN choco install 7zip -y
+# Set the working directory to /code
+WORKDIR /code
 
-# Set the working directory to /Code
-RUN mkdir -p /Code
-WORKDIR /Code
+# Add a non-root user for running the build
+RUN useradd -m builder
+USER builder

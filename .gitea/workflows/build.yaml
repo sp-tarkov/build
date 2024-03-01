@@ -9,19 +9,23 @@ on:
 jobs:
   build-server:
     runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-environment:latest
 
     steps:
-    - name: Check-out Server Project
+    - name: Checkout Server Project
       uses: actions/checkout@v4
       with:
         repository: 'refringe/Server'
         fetch-depth: 0
         lfs: true
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.15.0'
+    - name: Checkout Git LFS Objects
+      run: git lfs checkout
+
+    - name: Setup Node & NPM
+      run: nvm use
+      working-directory: ./project
 
     - name: Install dependencies
       run: npm install
