@@ -18,4 +18,5 @@ jobs:
 
     - name: Pull Server LFS Files
       run: git lfs pull
+      run: git lfs ls-files
       working-directory: /workspace/server
