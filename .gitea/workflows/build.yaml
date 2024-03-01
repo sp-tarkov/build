@@ -17,16 +17,16 @@ jobs:
       id: server-cache
       uses: actions/cache@v4
       with:
-        path: /workspace/server
+        path: /workspace/refringe/Build/server
         key: server-${{ gitea.sha }}
         restore-keys: server-
 
     - name: Clone Server
-      if: steps.cache-server-project.outputs.cache-hit != 'true'
-      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/server
+      if: steps.server-cache.outputs.cache-hit != 'true'
+      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/refringe/Build/server
 
     - name: Pull Server LFS Files
-      if: steps.cache-server-project.outputs.cache-hit != 'true'
+      if: steps.server-cache.outputs.cache-hit != 'true'
       run: |
-        cd /workspace/server
+        cd /workspace/refringe/Build/server
         git lfs pull && git lfs ls-files
