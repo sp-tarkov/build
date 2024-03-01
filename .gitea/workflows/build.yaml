@@ -17,6 +17,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'refringe/Server'
+        ref: '3.8.0-BE'
         fetch-depth: 0
         lfs: true
 
