@@ -14,16 +14,16 @@ jobs:
 
     steps:
     - name: Checkout Server Project
-      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "3.8.0-BE" --depth 1 "./SPT-AKI/Server"
+      uses: actions/checkout@v4
+      with:
+        repository: 'refringe/Server'
+        fetch-depth: 0
+        lfs: true
 
-    - name: Checkout Git LFS Objects
-      run: git lfs pull
-      working-directory: ./SPT-AKI/Server
-
-    - name: Setup Node
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.10.0'
+        node-version: '20.10'
 
     - name: Install Dependencies
       run: npm install
