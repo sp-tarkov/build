@@ -12,39 +12,59 @@ jobs:
     container:
       image: refringe/spt-build-server:0.0.1
     steps:
-    - name: Versions
+    - name: Debug Information
       run: |
-        echo "Git version:" && git --version
-        echo "Git LFS version:" && git-lfs --version
-        echo "Node.js version:" && node --version
-        echo "NPM version:" && npm --version
+        echo "Git version: $(git --version)"
+        echo "Git LFS version: $(git-lfs --version)"
+        echo "Node.js version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+        echo "Latest Commit Hash: $(git rev-parse HEAD)"
+        echo "Associated Tags: $(git tag --contains HEAD)"
+        echo "Branch Name: $(git branch --show-current)"
+        echo "Last Commit Message: $(git log -1 --pretty=%B)"
 
-    - name: Cache
-      id: server-cache
+    - name: Cache Keys
+      id: cache-keys
+      run: |
+        echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
+        TAGS=$(git tag --contains HEAD)
+        if [[ "$TAGS" == "" ]]; then
+          TAGS="no-tag"
+        fi
+        echo "::set-output name=tags::${TAGS//[$'\n\r']/}"
+        echo "Commit Hash: ${{ steps.cache-keys.outputs.commit_hash }}"
+        echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
+
+    - name: Build Cache
+      id: build-cache
       uses: actions/cache@v4
       with:
-        path: ./server
-        key: server-${{ gitea.sha }}
-        restore-keys: server-
+        path: ./server/project/build
+        key: build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}
+        restore-keys: |
+          build-${{ steps.cache-keys.outputs.commit_hash }}-
+          build-
 
     - name: Clone
-      if: steps.server-cache.outputs.cache-hit != 'true'
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         rm -rf ./server
         git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
 
     - name: Pull LFS Files
-      if: steps.server-cache.outputs.cache-hit != 'true'
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd ./server
         git lfs pull && git lfs ls-files
 
     - name: Install Dependencies
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd ./server/project
         npm install
 
     - name: Build Server
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd ./server/project
         npm run build:bleeding
