@@ -49,20 +49,19 @@ jobs:
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
       shell: bash
 
-    - name: Determine Build Type
+    - name: Build Type
       id: build-type
       run: |
-        IFS='-' read -ra ADDR <<< "${{ steps.cache-keys.outputs.tags }}"
-        BUILD_TYPE="debug"  # Default to debug
+        IFS=$'\n' read -r -d '' -a ADDR <<< "${{ steps.cache-keys.outputs.tags }}" || true
+        BUILD_TYPE="debug"  # Default
         for TAG in "${ADDR[@]}"; do
           RELEASE_BUILD_REGEX='^(v?\d+\.\d+\.\d+)$'
-          BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-(BE)(?:-[^-]+)?)$'
+          BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-BE(?:-[^-]+)?)$'
           if [[ "$TAG" =~ $RELEASE_BUILD_REGEX ]]; then
             BUILD_TYPE="release"
-            break  # Priority given to release, stop checking further
+            break  # Stop checking
           elif [[ "$TAG" =~ $BLEEDING_BUILD_REGEX ]]; then
             BUILD_TYPE="bleeding"
-            # Don't break here to ensure release tags take precedence if present
           fi
         done
         echo "Build type: $BUILD_TYPE"
