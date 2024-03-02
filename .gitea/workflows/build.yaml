@@ -41,12 +41,12 @@ jobs:
 
     - name: Install Server Dependencies
       run: |
-        cd ./server
+        cd ./server/project
         npm install
 
     - name: Install Server Dependencies
       run: |
-        cd ./server
+        cd ./server/project
         npm build:bleeding
 
 # find build type
