@@ -16,11 +16,11 @@ jobs:
       run: |
         rm -rf ./server
         git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
+      working-path: ./
 
     - name: Pull LFS Files
-      run: |
-        cd ./server
-        git lfs pull && git lfs ls-files
+      run: git lfs pull && git lfs ls-files
+      working-path: ./server
 
     - name: Runner Debug Information
       run: |
@@ -32,6 +32,7 @@ jobs:
         echo "Associated Tags: $(git tag --contains HEAD)"
         echo "Branch Name: $(git branch --show-current)"
         echo "Last Commit Message: $(git log -1 --pretty=%B)"
+      working-path: ./server
 
     - name: Cache Keys
       id: cache-keys
@@ -44,6 +45,7 @@ jobs:
         echo "::set-output name=tags::${TAGS//[$'\n\r']/}"
         echo "Commit Hash: ${{ steps.cache-keys.outputs.commit_hash }}"
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
+      working-path: ./server
 
     - name: Build Cache
       id: build-cache
@@ -57,16 +59,12 @@ jobs:
 
     - name: Install Dependencies
       if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        cd ./server/project
-        npm install
+      run: npm install
+      working-path: ./server/project
 
     - name: Build Server
       if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        cd ./server/project
-        npm run build:bleeding
+      run: npm run build:bleeding
+      working-path: ./server/project
 
-# find build type
-# npm install
-# npm build:type
+# TODO: find build type
