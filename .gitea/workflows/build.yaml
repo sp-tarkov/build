@@ -23,28 +23,30 @@ jobs:
       id: server-cache
       uses: actions/cache@v4
       with:
-        path: /workspace/refringe/Build/server
+        path: ./server
         key: server-${{ gitea.sha }}
         restore-keys: server-
 
     - name: Clone Server
       if: steps.server-cache.outputs.cache-hit != 'true'
-      run: git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 /workspace/refringe/Build/server
+      run: |
+        rm -rf ./server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
 
     - name: Pull Server LFS Files
       if: steps.server-cache.outputs.cache-hit != 'true'
       run: |
-        cd /workspace/refringe/Build/server
+        cd ./server
         git lfs pull && git lfs ls-files
 
     - name: Install Server Dependencies
       run: |
-        cd /workspace/refringe/Build/server
+        cd ./server
         npm install
 
     - name: Install Server Dependencies
       run: |
-        cd /workspace/refringe/Build/server
+        cd ./server
         npm build:bleeding
 
 # find build type
