@@ -12,14 +12,14 @@ jobs:
     container:
       image: refringe/spt-build-server:0.0.1
     steps:
-    - name: Print Versions
+    - name: Versions
       run: |
         echo "Git version:" && git --version
         echo "Git LFS version:" && git-lfs --version
         echo "Node.js version:" && node --version
         echo "NPM version:" && npm --version
 
-    - name: Server Cache
+    - name: Cache
       id: server-cache
       uses: actions/cache@v4
       with:
@@ -27,27 +27,27 @@ jobs:
         key: server-${{ gitea.sha }}
         restore-keys: server-
 
-    - name: Clone Server
+    - name: Clone
       if: steps.server-cache.outputs.cache-hit != 'true'
       run: |
         rm -rf ./server
         git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
 
-    - name: Pull Server LFS Files
+    - name: Pull LFS Files
       if: steps.server-cache.outputs.cache-hit != 'true'
       run: |
         cd ./server
         git lfs pull && git lfs ls-files
 
-    - name: Install Server Dependencies
+    - name: Install Dependencies
       run: |
         cd ./server/project
         npm install
 
-    - name: Install Server Dependencies
+    - name: Build Server
       run: |
         cd ./server/project
-        npm build:bleeding
+        npm run build:bleeding
 
 # find build type
 # npm install
