@@ -12,7 +12,17 @@ jobs:
     container:
       image: refringe/spt-build-server:0.0.1
     steps:
-    - name: Debug Information
+    - name: Clone
+      run: |
+        rm -rf ./server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
+
+    - name: Pull LFS Files
+      run: |
+        cd ./server
+        git lfs pull && git lfs ls-files
+
+    - name: Runner Debug Information
       run: |
         echo "Git version: $(git --version)"
         echo "Git LFS version: $(git-lfs --version)"
@@ -44,18 +54,6 @@ jobs:
         restore-keys: |
           build-${{ steps.cache-keys.outputs.commit_hash }}-
           build-
-
-    - name: Clone
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        rm -rf ./server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
-
-    - name: Pull LFS Files
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        cd ./server
-        git lfs pull && git lfs ls-files
 
     - name: Install Dependencies
       if: steps.build-cache.outputs.cache-hit != 'true'
