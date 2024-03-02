@@ -93,7 +93,7 @@ jobs:
         npm run build:$BUILD_TYPE
 
     - name: Archive Build
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
         path: ./server/project/build/
