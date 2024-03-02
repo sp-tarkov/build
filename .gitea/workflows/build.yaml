@@ -49,13 +49,32 @@ jobs:
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
       shell: bash
 
+    - name: Build Type
+      id: build-type
+      run: |
+        TAGS="${{ steps.cache-keys.outputs.tags }}"
+        RELEASE_BUILD_REGEX='^(v?\d+\.\d+\.\d+)$'
+        BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-(BE)(?:-[^-]+)?)$'
+        if [[ "$TAGS" =~ $RELEASE_BUILD_REGEX ]]; then
+          echo "Build type: release"
+          echo "::set-output name=build_type::release"
+        elif [[ "$TAGS" =~ $BLEEDING_BUILD_REGEX ]]; then
+          echo "Build type: bleeding"
+          echo "::set-output name=build_type::bleeding"
+        else
+          echo "Build type: debug"
+          echo "::set-output name=build_type::debug"
+        fi
+      shell: bash
+
     - name: Build Cache
       id: build-cache
       uses: actions/cache@v4
       with:
         path: ./server/project/build
-        key: build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}
+        key: build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-${{ steps.build-type.outputs.build_type }}
         restore-keys: |
+          build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-
           build-${{ steps.cache-keys.outputs.commit_hash }}-
           build-
 
@@ -69,8 +88,13 @@ jobs:
       if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd ./server/project
-        npm run build:bleeding
+        BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
+        echo "Running build for $BUILD_TYPE"
+        npm run build:$BUILD_TYPE
 
-# find build type
-# npm install
-# npm build:type
+    - name: Archive Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: ./server/project/build/
+        overwrite: true
