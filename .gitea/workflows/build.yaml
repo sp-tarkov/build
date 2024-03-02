@@ -31,21 +31,21 @@ jobs:
         echo "NPM version: $(npm --version)"
         echo "Latest Commit Hash: $(git rev-parse HEAD)"
         echo "Associated Tags: $(git tag --contains HEAD)"
-        echo "Branch Name: $(git branch --show-current)"
-        echo "Last Commit Message: $(git log -1 --pretty=%B)"
+        echo "Last Commit Message:" && git log -1 --pretty=%B
 
     - name: Cache Keys
       id: cache-keys
       run: |
         cd ./server
         echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
-        TAGS=$(git tag --contains HEAD)
-        if [[ "$TAGS" == "" ]]; then
+        TAGS=$(git tag --contains HEAD || echo "no-tag")
+        if [ -z "$TAGS" ]; then
           TAGS="no-tag"
         fi
-        echo "::set-output name=tags::${TAGS//[$'\n\r']/}"
+        printf "::set-output name=tags::%s" "${TAGS//$'\n'/,}"
         echo "Commit Hash: ${{ steps.cache-keys.outputs.commit_hash }}"
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
+      shell: bash
 
     - name: Build Cache
       id: build-cache
