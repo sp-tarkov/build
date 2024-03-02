@@ -49,22 +49,24 @@ jobs:
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
       shell: bash
 
-    - name: Build Type
+    - name: Determine Build Type
       id: build-type
       run: |
-        TAGS="${{ steps.cache-keys.outputs.tags }}"
-        RELEASE_BUILD_REGEX='^(v?\d+\.\d+\.\d+)$'
-        BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-(BE)(?:-[^-]+)?)$'
-        if [[ "$TAGS" =~ $RELEASE_BUILD_REGEX ]]; then
-          echo "Build type: release"
-          echo "::set-output name=build_type::release"
-        elif [[ "$TAGS" =~ $BLEEDING_BUILD_REGEX ]]; then
-          echo "Build type: bleeding"
-          echo "::set-output name=build_type::bleeding"
-        else
-          echo "Build type: debug"
-          echo "::set-output name=build_type::debug"
-        fi
+        IFS='-' read -ra ADDR <<< "${{ steps.cache-keys.outputs.tags }}"
+        BUILD_TYPE="debug"  # Default to debug
+        for TAG in "${ADDR[@]}"; do
+          RELEASE_BUILD_REGEX='^(v?\d+\.\d+\.\d+)$'
+          BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-(BE)(?:-[^-]+)?)$'
+          if [[ "$TAG" =~ $RELEASE_BUILD_REGEX ]]; then
+            BUILD_TYPE="release"
+            break  # Priority given to release, stop checking further
+          elif [[ "$TAG" =~ $BLEEDING_BUILD_REGEX ]]; then
+            BUILD_TYPE="bleeding"
+            # Don't break here to ensure release tags take precedence if present
+          fi
+        done
+        echo "Build type: $BUILD_TYPE"
+        echo "::set-output name=build_type::$BUILD_TYPE"
       shell: bash
 
     - name: Build Cache
@@ -95,6 +97,7 @@ jobs:
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
-        name: build-artifacts
+        name: server-build
         path: ./server/project/build/
+
         overwrite: true
