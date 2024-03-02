@@ -42,7 +42,9 @@ jobs:
         if [ -z "$TAGS" ]; then
           TAGS="no-tag"
         fi
-        printf "::set-output name=tags::%s" "${TAGS//$'\n'/,}"
+        TAGS="${TAGS//$'\n'/-}"  # Replace newline characters with dashes
+        TAGS="${TAGS//,/-}"      # Replace commas with dashes
+        echo "::set-output name=tags::${TAGS}"
         echo "Commit Hash: ${{ steps.cache-keys.outputs.commit_hash }}"
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
       shell: bash
