@@ -145,7 +145,7 @@ jobs:
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
         git fetch --depth=1 origin 3.8.0-BE
         git checkout FETCH_HEAD
-        ls -la ./server-core
+        ls -la
       shell: bash
 
   build-launcher:
