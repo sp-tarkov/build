@@ -183,8 +183,7 @@ jobs:
       run: |
         cd ./modules/project/Shared/Managed
         7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
-        echo "Client module package decompressed."
-        ls -la
+        echo "Client module package decompressed.\n\n"
       shell: bash
 
     - name: Delete Client Module Package
@@ -192,6 +191,13 @@ jobs:
         cd ./modules/project/Shared/Managed
         rm -f ${{ steps.extract-client-version.outputs.client_version }}.zip
         echo "Client module package deleted."
+      shell: bash
+
+    - name: Build Modules
+      run: |
+        cd ./modules/project
+        dotnet build
+        ls -la
       shell: bash
 
   build-launcher:
