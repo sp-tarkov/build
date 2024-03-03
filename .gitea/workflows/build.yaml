@@ -152,7 +152,7 @@ jobs:
     - name: Extract Client Version
       run: |
         cd ./server-core/project/assets/configs
-        CLIENT_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        CLIENT_VERSION=$(python3 -c "import json; print(json.load(open('core.json'))['compatibleTarkovVersion'].split('.')[-1])")
         echo "Client Version: $CLIENT_VERSION"
         echo "::set-output name=client_version::$CLIENT_VERSION"
       shell: bash
