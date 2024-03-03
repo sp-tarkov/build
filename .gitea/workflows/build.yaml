@@ -15,7 +15,7 @@ jobs:
       - name: Check Tag Exists in All Repositories
         id: check
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
+          TAG=3.8.0-BE
           REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
           PROCEED="true"
           for REPO in ${REPOS[@]}; do
