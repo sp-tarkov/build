@@ -93,5 +93,24 @@ jobs:
       with:
         name: server-build
         path: ./server/project/build/
-
         overwrite: true
+
+  Build Modules:
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-dotnet:0.0.1
+    steps:
+    - name: Clone
+      run: |
+        rm -rf ./modules
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE --depth 1 ./modules
+
+  Build Launcher:
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-dotnet:0.0.1
+    steps:
+    - name: Clone
+      run: |
+        rm -rf ./launcher
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE --depth 1 ./launcher
