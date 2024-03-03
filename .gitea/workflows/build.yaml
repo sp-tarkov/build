@@ -136,6 +136,18 @@ jobs:
         rm -rf ./modules
         git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE --depth 1 ./modules
 
+    - name: Fetch Server Core Config
+      run: |
+        git init ./server-core
+        cd ./server-core
+        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+        git config core.sparseCheckout true
+        echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
+        git fetch --depth=1 origin 3.8.0-BE
+        git checkout FETCH_HEAD
+        ls -la ./server-core
+      shell: bash
+
   build-launcher:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
