@@ -150,6 +150,7 @@ jobs:
       shell: bash
 
     - name: Extract Client Version
+      id: extract-client-version
       run: |
         cd ./server-core/project/assets/configs
         FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
@@ -161,11 +162,11 @@ jobs:
     - name: Download Client Module Package
       run: |
         DIR_MANAGED="./modules/project/Shared/Managed"
-        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.fetch-server-core-config.outputs.client_version }}.zip"
-        DOWNLOAD_URL="$MODULE_DOMAIN/${{ needs.fetch-server-core-config.outputs.client_version }}.zip"
+        DOWNLOAD_PATH="$DIR_MANAGED/${{ steps.extract-client-version.outputs.client_version }}.zip"
+        DOWNLOAD_URL="$MODULE_DOMAIN/${{ steps.extract-client-version.outputs.client_version }}.zip"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
         mkdir -p "$DIR_MANAGED"
-        wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
+        wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
           echo "Failed to download the module package."
           exit 1
         }
