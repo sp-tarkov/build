@@ -148,6 +148,14 @@ jobs:
         ls -la
       shell: bash
 
+    - name: Extract Client Version
+      run: |
+        cd ./server-core/project/assets/configs
+        CLIENT_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        echo "Client Version: $CLIENT_VERSION"
+        echo "::set-output name=client_version::$CLIENT_VERSION"
+      shell: bash
+
   build-launcher:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
