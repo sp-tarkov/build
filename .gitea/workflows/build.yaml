@@ -129,7 +129,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.1
+      image: refringe/spt-build-dotnet:0.0.4
     steps:
     - name: Clone
       run: |
@@ -152,13 +152,9 @@ jobs:
     - name: Extract Client Version
       run: |
         cd ./server-core/project/assets/configs
-        ClientVersion=$(pwsh -Command "& {
-          \$json = Get-Content -Path './core.json' | ConvertFrom-Json
-          \$version = \$json.compatibleTarkovVersion -split '\.' | Select-Object -Last 1
-          Write-Output \$version
-        }")
-        echo "Extracted Client Version: $ClientVersion"
-        echo "::set-output name=client_version::$ClientVersion"
+        CLIENT_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        echo "Extracted Client Version: $CLIENT_VERSION"
+        echo "::set-output name=client_version::$CLIENT_VERSION"
       shell: bash
 
   build-launcher:
@@ -166,7 +162,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.1
+      image: refringe/spt-build-dotnet:0.0.4
     steps:
     - name: Clone
       run: |
