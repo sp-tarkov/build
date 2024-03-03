@@ -138,6 +138,7 @@ jobs:
 
     - name: Fetch Server Core Config
       run: |
+        rm -rf ./server-core
         git init ./server-core
         cd ./server-core
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
