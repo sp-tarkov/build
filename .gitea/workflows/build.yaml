@@ -49,21 +49,16 @@ jobs:
         echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
       shell: bash
 
-    - name: Build Type
+    - name: Determine Build Type
       id: build-type
       run: |
-        IFS=$'\n' read -r -d '' -a ADDR <<< "${{ steps.cache-keys.outputs.tags }}" || true
+        TAGS="${{ steps.cache-keys.outputs.tags }}"
         BUILD_TYPE="debug"  # Default
-        for TAG in "${ADDR[@]}"; do
-          RELEASE_BUILD_REGEX='^(v?\d+\.\d+\.\d+)$'
-          BLEEDING_BUILD_REGEX='^(v?\d+\.\d+\.\d+-BE(?:-[^-]+)?)$'
-          if [[ "$TAG" =~ $RELEASE_BUILD_REGEX ]]; then
-            BUILD_TYPE="release"
-            break  # Stop checking
-          elif [[ "$TAG" =~ $BLEEDING_BUILD_REGEX ]]; then
-            BUILD_TYPE="bleeding"
-          fi
-        done
+        if [[ "$TAGS" =~ -BE ]]; then
+          BUILD_TYPE="bleeding"
+        elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
+          BUILD_TYPE="release"
+        fi
         echo "Build type: $BUILD_TYPE"
         echo "::set-output name=build_type::$BUILD_TYPE"
       shell: bash
