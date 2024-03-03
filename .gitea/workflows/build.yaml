@@ -152,9 +152,13 @@ jobs:
     - name: Extract Client Version
       run: |
         cd ./server-core/project/assets/configs
-        CLIENT_VERSION=$(pwsh -Command "& {(\$json = Get-Content -Path './core.json' | ConvertFrom-Json); \$json.compatibleTarkovVersion.Split('.')[-1]}")
-        echo "Extracted Client Version: $CLIENT_VERSION"
-        echo "::set-output name=client_version::$CLIENT_VERSION"
+        $ClientVersion = pwsh -Command "& {
+          \$json = Get-Content -Path './core.json' | ConvertFrom-Json
+          \$version = \$json.compatibleTarkovVersion -split '\.' | Select-Object -Last 1
+          Write-Output \$version
+        }"
+        echo "Extracted Client Version: $ClientVersion"
+        echo "::set-output name=client_version::$ClientVersion"
       shell: bash
 
   build-launcher:
