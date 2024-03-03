@@ -7,7 +7,36 @@ on:
     branches: [ main ]
 
 jobs:
-  Build Server:
+  check-tag-exists:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - name: Check Tag Exists in All Repositories
+        id: check
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
+          PROCEED="true"
+          for REPO in ${REPOS[@]}; do
+            echo "Checking for tag $TAG in $REPO..."
+            if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
+              echo "Tag $TAG not found in $REPO"
+              PROCEED="false"
+              break
+            fi
+          done
+          echo "::set-output name=proceed::$PROCEED"
+        shell: bash
+      - name: Tag Not Found
+        if: steps.check.outputs.proceed == 'false'
+        run: |
+          echo "Tag not found in one or more repositories, halting workflow."
+          exit 1
+
+  build-server:
+    needs: check-tag-exists
+    if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-server:0.0.1
@@ -95,7 +124,9 @@ jobs:
         path: ./server/project/build/
         overwrite: true
 
-  Build Modules:
+  build-modules:
+    needs: check-tag-exists
+    if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-dotnet:0.0.1
@@ -105,7 +136,9 @@ jobs:
         rm -rf ./modules
         git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE --depth 1 ./modules
 
-  Build Launcher:
+  build-launcher:
+    needs: check-tag-exists
+    if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-dotnet:0.0.1
