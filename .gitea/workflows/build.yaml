@@ -179,6 +179,19 @@ jobs:
       env:
         MODULE_DOMAIN: ${{ secrets.MODULE_DOMAIN }}
 
+    - name: Decompress Client Module Package
+      run: |
+        cd ./modules/project/Shared/Managed
+        7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
+      shell: bash
+
+    - name: Delete Client Module Package
+      run: |
+        cd ./modules/project/Shared/Managed
+        rm -f ${{ steps.extract-client-version.outputs.client_version }}.zip
+        echo "Client module package deleted."
+      shell: bash
+
   build-launcher:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
