@@ -146,16 +146,37 @@ jobs:
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
         git fetch --depth=1 origin 3.8.0-BE
         git checkout FETCH_HEAD
-        ls -la
+        ls -la project/assets/configs
       shell: bash
 
     - name: Extract Client Version
       run: |
         cd ./server-core/project/assets/configs
-        CLIENT_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        CLIENT_VERSION=${FULL_VERSION##*.}
         echo "Extracted Client Version: $CLIENT_VERSION"
         echo "::set-output name=client_version::$CLIENT_VERSION"
       shell: bash
+
+    - name: Download Client Module Package
+      run: |
+        DIR_MANAGED="./modules/project/Shared/Managed"
+        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.fetch-server-core-config.outputs.client_version }}.zip"
+        DOWNLOAD_URL="$MODULE_DOMAIN/${{ needs.fetch-server-core-config.outputs.client_version }}.zip"
+        echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
+        mkdir -p "$DIR_MANAGED"
+        wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
+          echo "Failed to download the module package."
+          exit 1
+        }
+        if [ ! -s "$DOWNLOAD_PATH" ]; then
+          echo "The module package does not exist or is empty."
+          exit 1
+        fi
+        echo "Download Successful: $DOWNLOAD_PATH"
+      shell: bash
+      env:
+        MODULE_DOMAIN: ${{ secrets.MODULE_DOMAIN }}
 
   build-launcher:
     needs: check-tag-exists

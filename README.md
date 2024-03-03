@@ -67,7 +67,7 @@ docker run --detach --volume=//./pipe/docker_engine://./pipe/docker_engine --env
 
 ## Module Requirements
 
-To build the Modules project, a link to a private repository is required for the build process. The link is stored as a secret in the Drone CI/CD environment. The secret is named `MODULE_DOMAIN` and is used to download files from the private repository.
+To build the Modules project, a link to a private repository is required for the build process. The link is stored as a secret in the Drone CI/CD environment. The secret is named `MODULE_DOMAIN` and is used to download files from the private repository. It does not end with a slash.
 
 ## Building the Docker Images
 
