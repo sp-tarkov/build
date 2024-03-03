@@ -183,6 +183,8 @@ jobs:
       run: |
         cd ./modules/project/Shared/Managed
         7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
+        echo "Client module package decompressed."
+        ls -la
       shell: bash
 
     - name: Delete Client Module Package
