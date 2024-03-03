@@ -129,7 +129,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.3
+      image: refringe/spt-build-dotnet:0.0.1
     steps:
     - name: Clone
       run: |
@@ -162,7 +162,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.3
+      image: refringe/spt-build-dotnet:0.0.1
     steps:
     - name: Clone
       run: |
