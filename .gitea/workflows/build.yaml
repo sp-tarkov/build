@@ -152,11 +152,11 @@ jobs:
     - name: Extract Client Version
       run: |
         cd ./server-core/project/assets/configs
-        $ClientVersion = pwsh -Command "& {
+        ClientVersion=$(pwsh -Command "& {
           \$json = Get-Content -Path './core.json' | ConvertFrom-Json
           \$version = \$json.compatibleTarkovVersion -split '\.' | Select-Object -Last 1
           Write-Output \$version
-        }"
+        }")
         echo "Extracted Client Version: $ClientVersion"
         echo "::set-output name=client_version::$ClientVersion"
       shell: bash
