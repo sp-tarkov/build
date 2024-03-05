@@ -75,7 +75,7 @@ Be sure to update the version number to the next available version before buildi
 
 ```
 # Build and push the spt-build-server Docker image to the Docker Hub
-docker build -t refringe/spt-build-server:0.0.0 -t refringe/spt-build-server:latest -f Dockerfile.server .
+docker build -t refringe/spt-build-server:0.0.0 -t refringe/spt-build-server:latest -f Dockerfile.node .
 docker push refringe/spt-build-server --all-tags
 
 # Build and push the spt-build-dotnet Docker image to the Docker Hub

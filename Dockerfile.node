@@ -1,7 +1,11 @@
 # Use the Node v20.10.0 base image
 FROM node:20.10.0
 
-# Install necessary tools and dependencies (git, git-lfs, and zstd)
+# Install necessary tools and dependencies
+#  - git (duh)
+#  - git-lfs (duh)
+#  - zstd (caching action dependancy)
+#  - tree (pretty print build directory structure)
 RUN apt-get update && \
     apt-get install -y git git-lfs zstd && \
     apt-get clean && \

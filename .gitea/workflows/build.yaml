@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.1
+      image: refringe/spt-build-server:0.0.2
     steps:
     - name: Clone
       run: |
@@ -117,6 +117,8 @@ jobs:
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE
+        echo "Built..."
+        tree -C ./server/project/build
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
@@ -130,7 +132,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.5
+      image: refringe/spt-build-dotnet:0.0.6
     steps:
     - name: Clone
       run: |
@@ -198,7 +200,8 @@ jobs:
       run: |
         cd ./modules/project
         dotnet build
-        ls -la Build
+        echo "Built..."
+        tree -C ./modules/project/Build
       shell: bash
 
     - name: Archive Build
@@ -213,7 +216,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:0.0.5
+      image: refringe/spt-build-dotnet:0.0.6
     steps:
     - name: Clone
       run: |
