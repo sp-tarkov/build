@@ -15,7 +15,8 @@ jobs:
       - name: Check Tag Exists in All Repositories
         id: check
         run: |
-          TAG=3.8.0-BE
+          # The tag needs to be saved as a variable so that it can be used throughout the build process.
+          TAG=3.8.0-BE-Test
           REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
           PROCEED="true"
           for REPO in ${REPOS[@]}; do
@@ -44,7 +45,7 @@ jobs:
     - name: Clone
       run: |
         rm -rf ./server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE --depth 1 ./server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-Test --depth 1 ./server
 
     - name: Pull LFS Files
       run: |
@@ -134,7 +135,7 @@ jobs:
     - name: Clone
       run: |
         rm -rf ./modules
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE --depth 1 ./modules
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-Test --depth 1 ./modules
 
     - name: Fetch Server Core Config
       run: |
@@ -144,7 +145,7 @@ jobs:
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
-        git fetch --depth=1 origin 3.8.0-BE
+        git fetch --depth=1 origin 3.8.0-BE-Test
         git checkout FETCH_HEAD
         ls -la project/assets/configs
       shell: bash
@@ -183,7 +184,7 @@ jobs:
       run: |
         cd ./modules/project/Shared/Managed
         7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
-        echo "Client module package decompressed.\n\n"
+        echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
@@ -210,4 +211,4 @@ jobs:
     - name: Clone
       run: |
         rm -rf ./launcher
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE --depth 1 ./launcher
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-Test --depth 1 ./launcher
