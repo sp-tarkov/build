@@ -198,8 +198,15 @@ jobs:
       run: |
         cd ./modules/project
         dotnet build
-        ls -la
+        ls -la Build
       shell: bash
+
+    - name: Archive Build
+      uses: actions/upload-artifact@v3
+      with:
+        name: modules-build
+        path: ./modules/project/Build
+        overwrite: true
 
   build-launcher:
     needs: check-tag-exists
