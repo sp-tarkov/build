@@ -44,17 +44,17 @@ jobs:
     steps:
     - name: Clone
       run: |
-        rm -rf ./server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-Test --depth 1 ./server
+        rm -rf /workspace/refringe/Build/server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/server
 
     - name: Pull LFS Files
       run: |
-        cd ./server
+        cd /workspace/refringe/Build/server
         git lfs pull && git lfs ls-files
 
     - name: Runner Debug Information
       run: |
-        cd ./server
+        cd /workspace/refringe/Build/server
         echo "Git version: $(git --version)"
         echo "Git LFS version: $(git-lfs --version)"
         echo "Node.js version: $(node --version)"
@@ -66,7 +66,7 @@ jobs:
     - name: Cache Keys
       id: cache-keys
       run: |
-        cd ./server
+        cd /workspace/refringe/Build/server
         echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
         TAGS=$(git tag --contains HEAD || echo "no-tag")
         if [ -z "$TAGS" ]; then
@@ -97,7 +97,7 @@ jobs:
       id: build-cache
       uses: actions/cache@v4
       with:
-        path: ./server/project/build
+        path: /workspace/refringe/Build/server/project/build
         key: build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-${{ steps.build-type.outputs.build_type }}
         restore-keys: |
           build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-
@@ -107,25 +107,23 @@ jobs:
     - name: Install Dependencies
       if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
-        cd ./server/project
+        cd /workspace/refringe/Build/server/project
         npm install
 
     - name: Build Server
       if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
-        cd ./server/project
+        cd /workspace/refringe/Build/server/project
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE
-        echo "Built..."
-        cd ./server/project/build
-        tree -C
+        tree -C /workspace/refringe/Build/server/project/build
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
         name: server-build
-        path: ./server/project/build/
+        path: /workspace/refringe/Build/server/project/build/
         overwrite: true
 
   build-modules:
@@ -137,14 +135,14 @@ jobs:
     steps:
     - name: Clone
       run: |
-        rm -rf ./modules
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-Test --depth 1 ./modules
+        rm -rf /workspace/refringe/Build/modules
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/modules
 
     - name: Fetch Server Core Config
       run: |
-        rm -rf ./server-core
-        git init ./server-core
-        cd ./server-core
+        rm -rf /workspace/refringe/Build/server-core
+        git init /workspace/refringe/Build/server-core
+        cd /workspace/refringe/Build/server-core
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
@@ -156,7 +154,7 @@ jobs:
     - name: Extract Client Version
       id: extract-client-version
       run: |
-        cd ./server-core/project/assets/configs
+        cd /workspace/refringe/Build/server-core/project/assets/configs
         FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
         CLIENT_VERSION=${FULL_VERSION##*.}
         echo "Extracted Client Version: $CLIENT_VERSION"
@@ -165,7 +163,7 @@ jobs:
 
     - name: Download Client Module Package
       run: |
-        DIR_MANAGED="./modules/project/Shared/Managed"
+        DIR_MANAGED="/workspace/refringe/Build/modules/project/Shared/Managed"
         DOWNLOAD_PATH="$DIR_MANAGED/${{ steps.extract-client-version.outputs.client_version }}.zip"
         DOWNLOAD_URL="$MODULE_DOMAIN/${{ steps.extract-client-version.outputs.client_version }}.zip"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
@@ -185,32 +183,30 @@ jobs:
 
     - name: Decompress Client Module Package
       run: |
-        cd ./modules/project/Shared/Managed
+        cd /workspace/refringe/Build/modules/project/Shared/Managed
         7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
         echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
       run: |
-        cd ./modules/project/Shared/Managed
+        cd /workspace/refringe/Build/modules/project/Shared/Managed
         rm -f ${{ steps.extract-client-version.outputs.client_version }}.zip
         echo "Client module package deleted."
       shell: bash
 
     - name: Build Modules
       run: |
-        cd ./modules/project
+        cd /workspace/refringe/Build/modules/project
         dotnet build
-        echo "Built..."
-        cd ./modules/project/Build
-        tree -C
+        tree /workspace/refringe/Build/modules/project/Build
       shell: bash
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
         name: modules-build
-        path: ./modules/project/Build
+        path: /workspace/refringe/Build/modules/project/Build
         overwrite: true
 
   build-launcher:
@@ -222,5 +218,5 @@ jobs:
     steps:
     - name: Clone
       run: |
-        rm -rf ./launcher
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-Test --depth 1 ./launcher
+        rm -rf /workspace/refringe/Build/launcher
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/launcher
