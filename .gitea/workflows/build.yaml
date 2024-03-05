@@ -105,13 +105,13 @@ jobs:
           build-
 
     - name: Install Dependencies
-      if: steps.build-cache.outputs.cache-hit != 'true'
+      #if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         npm install
 
     - name: Build Server
-      if: steps.build-cache.outputs.cache-hit != 'true'
+      #if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
