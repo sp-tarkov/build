@@ -117,7 +117,9 @@ jobs:
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE
+        echo "\nBuilt!\n"
         tree -C /workspace/refringe/Build/server/project/build
+      shell: bash
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
@@ -199,6 +201,7 @@ jobs:
       run: |
         cd /workspace/refringe/Build/modules/project
         dotnet build
+        echo "\nBuilt!\n"
         tree /workspace/refringe/Build/modules/project/Build
       shell: bash
 
