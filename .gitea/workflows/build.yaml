@@ -118,7 +118,8 @@ jobs:
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE
         echo "Built..."
-        tree -C ./server/project/build
+        cd ./server/project/build
+        tree -C
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
@@ -201,7 +202,8 @@ jobs:
         cd ./modules/project
         dotnet build
         echo "Built..."
-        tree -C ./modules/project/Build
+        cd ./modules/project/Build
+        tree -C
       shell: bash
 
     - name: Archive Build
