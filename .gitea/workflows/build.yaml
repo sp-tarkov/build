@@ -223,3 +223,11 @@ jobs:
       run: |
         rm -rf /workspace/refringe/Build/launcher
         git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/launcher
+
+    - name: Build Launcher
+      run: |
+        cd /workspace/refringe/Build/launcher/project
+        dotnet build
+        printf "\nBuilt!\n\n"
+        tree /workspace/refringe/Build/launcher/project
+      shell: bash
