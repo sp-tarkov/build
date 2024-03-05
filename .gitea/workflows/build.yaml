@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.2
+      image: refringe/spt-build-server:0.0.3
     steps:
     - name: Clone
       run: |
@@ -117,7 +117,7 @@ jobs:
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE
-        echo "\nBuilt!\n"
+        printf "\nBuilt!\n\n"
         tree -C /workspace/refringe/Build/server/project/build
       shell: bash
 
@@ -201,7 +201,7 @@ jobs:
       run: |
         cd /workspace/refringe/Build/modules/project
         dotnet build
-        echo "\nBuilt!\n"
+        printf "\nBuilt!\n\n"
         tree /workspace/refringe/Build/modules/project/Build
       shell: bash
 
