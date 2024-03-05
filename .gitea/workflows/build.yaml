@@ -229,5 +229,12 @@ jobs:
         cd /workspace/refringe/Build/launcher/project
         dotnet build
         printf "\nBuilt!\n\n"
-        tree /workspace/refringe/Build/launcher/project
+        tree /workspace/refringe/Build/launcher/project/Build
       shell: bash
+
+    - name: Archive Build
+      uses: actions/upload-artifact@v3
+      with:
+        name: launcher-build
+        path: /workspace/refringe/Build/launcher/project/Build
+        overwrite: true
