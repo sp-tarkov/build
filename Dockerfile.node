@@ -4,9 +4,16 @@ FROM node:20.10.0
 # Install necessary tools and dependencies
 #  - git (duh)
 #  - git-lfs (duh)
-#  - zstd (caching action dependancy)
+#  - zstd (caching action dependency)
 #  - tree (pretty print build directory structure)
+#  - wget (to download megacmd)
+#  - gnupg (for adding MEGA.nz repo keys)
+#  - software-properties-common (adding repo)
 RUN apt-get update && \
-    apt-get install -y git git-lfs zstd tree && \
-    apt-get clean && \
+    apt-get install -y git git-lfs zstd tree wget gnupg software-properties-common && \
     rm -rf /var/lib/apt/lists/*
+
+# Install the MegaCMD client
+RUN wget https://mega.nz/linux/repo/Debian_12/amd64/megacmd-Debian_12_amd64.deb && \
+    dpkg -i megacmd-Debian_12_amd64.deb || apt-get install -fy && \
+    rm -f megacmd-Debian_12_amd64.deb
