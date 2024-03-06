@@ -260,6 +260,9 @@ jobs:
           name: modules-build
           path: /workspace/refringe/Build/combined-build/
 
+      - name: List combined-build directory contents
+        run: tree /workspace/refringe/Build/combined-build
+
       - name: Download Launcher Build Archive
         uses: actions/download-artifact@v3
         with:
