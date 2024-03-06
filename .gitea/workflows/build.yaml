@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       proceed: ${{ steps.check.outputs.proceed }}
+      target_tag: ${{ steps.output-target-tag.outputs.target_tag }}
     steps:
       - name: Check Tag Exists in All Repositories
         id: check
@@ -30,15 +31,16 @@ jobs:
           echo "::set-output name=proceed::$PROCEED"
         shell: bash
 
+      - name: Output Target Tag
+        id: output-target-tag
+        run: |
+          echo "target_tag=${TAG}" >> $GITHUB_ENV
+
       - name: Tag Not Found
         if: steps.check.outputs.proceed == 'false'
         run: |
           echo "Tag not found in one or more repositories, halting workflow."
           exit 1
-
-      - name: Output Target Tag
-        if: steps.check.outputs.proceed == 'true'
-        run: echo "target_tag=${TAG}" >> $GITHUB_OUTPUT
 
   build-server:
     needs: check-tag-exists
@@ -46,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-server:0.0.6
+    outputs:
+      build_type: ${{ steps.build-type.outputs.build_type }}
     steps:
     - name: Clone
       run: |
@@ -94,8 +98,8 @@ jobs:
         elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
           BUILD_TYPE="release"
         fi
-        echo "Build type: $BUILD_TYPE"
-        echo "::set-output name=build_type::$BUILD_TYPE"
+        echo "build_type=${BUILD_TYPE}" >> $GITHUB_ENV
+        echo "::set-output name=build_type::${BUILD_TYPE}"
       shell: bash
 
     - name: Build Cache
@@ -133,15 +137,14 @@ jobs:
         path: /workspace/refringe/Build/server/project/build/
         overwrite: true
 
-    - name: Output Build Type
-      run: echo "build_type=${BUILD_TYPE}" >> $GITHUB_OUTPUT
-
   build-modules:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-dotnet:0.0.6
+    outputs:
+      build_type: ${{ steps.extract-client-version.outputs.client_version }}
     steps:
     - name: Clone
       run: |
@@ -168,6 +171,7 @@ jobs:
         FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
         CLIENT_VERSION=${FULL_VERSION##*.}
         echo "Extracted Client Version: $CLIENT_VERSION"
+        echo "client_version=${CLIENT_VERSION}" >> $GITHUB_ENV
         echo "::set-output name=client_version::$CLIENT_VERSION"
       shell: bash
 
@@ -219,9 +223,6 @@ jobs:
         name: modules-build
         path: /workspace/refringe/Build/modules/project/Build
         overwrite: true
-
-    - name: Output Client Version
-      run: echo "client_version=${CLIENT_VERSION}" >> $GITHUB_OUTPUT
 
   build-launcher:
     needs: check-tag-exists
@@ -304,7 +305,7 @@ jobs:
       - name: Upload Release
         uses: Difegue/action-megacmd@master
         with:
-          args: put -c "/workspace/refringe/Build/${RELEASE_FILENAME}" "/spt-release/${RELEASE_FILENAME}"
+          args: put -c /workspace/refringe/Build/"${RELEASE_FILENAME}" /spt-release/"${RELEASE_FILENAME}"
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
