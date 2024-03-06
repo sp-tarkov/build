@@ -239,32 +239,40 @@ jobs:
         path: /workspace/refringe/Build/launcher/project/Build
         overwrite: true
 
-  extract-and-combine:
+  assemble-release:
     needs: [build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-server:0.0.4
     steps:
-      - name: Create combined build directory
-        run: mkdir -p /workspace/refringe/Build/combined-build
+      - name: Create Directory
+        run: mkdir -p /workspace/refringe/Build/assembled
 
-      - name: Download Server Build Archive
+      - name: Download Server Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: server-build
-          path: /workspace/refringe/Build/combined-build/
+          path: /workspace/refringe/Build/assembled/
 
-      - name: Download Modules Build Archive
+      - name: Download Modules Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: modules-build
-          path: /workspace/refringe/Build/combined-build/
+          path: /workspace/refringe/Build/assembled/
 
-      - name: Download Launcher Build Archive
+      - name: Download Launcher Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: launcher-build
-          path: /workspace/refringe/Build/combined-build/
+          path: /workspace/refringe/Build/assembled/
 
-      - name: List combined-build directory contents
-        run: tree /workspace/refringe/Build/combined-build
+      - name: Clone Build Project
+        uses: actions/checkout@v3
+        with:
+          path: /workspace/refringe/Build/build
+
+      - name: List Directory Contents
+        run: |
+          /workspace/refringe/Build/build
+          /workspace/refringe/Build/assembled
+        shell: bash
