@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       proceed: ${{ steps.check.outputs.proceed }}
-      target_tag: ${{ steps.output-target-tag.outputs.target_tag }}
+      target_tag: ${{ steps.check.outputs.target_tag }}
     steps:
       - name: Check Tag Exists in All Repositories
         id: check
@@ -28,13 +28,9 @@ jobs:
               break
             fi
           done
-          echo "::set-output name=proceed::$PROCEED"
+          echo "::set-output name=proceed::${PROCEED}"
+          echo "::set-output name=target_tag::${TAG}"
         shell: bash
-
-      - name: Output Target Tag
-        id: output-target-tag
-        run: |
-          echo "target_tag=${TAG}" >> $GITHUB_ENV
 
       - name: Tag Not Found
         if: steps.check.outputs.proceed == 'false'
@@ -98,7 +94,6 @@ jobs:
         elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
           BUILD_TYPE="release"
         fi
-        echo "build_type=${BUILD_TYPE}" >> $GITHUB_ENV
         echo "::set-output name=build_type::${BUILD_TYPE}"
       shell: bash
 
@@ -144,7 +139,7 @@ jobs:
     container:
       image: refringe/spt-build-dotnet:0.0.6
     outputs:
-      build_type: ${{ steps.extract-client-version.outputs.client_version }}
+      client_version: ${{ steps.extract-client-version.outputs.client_version }}
     steps:
     - name: Clone
       run: |
@@ -171,8 +166,7 @@ jobs:
         FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
         CLIENT_VERSION=${FULL_VERSION##*.}
         echo "Extracted Client Version: $CLIENT_VERSION"
-        echo "client_version=${CLIENT_VERSION}" >> $GITHUB_ENV
-        echo "::set-output name=client_version::$CLIENT_VERSION"
+        echo "::set-output name=client_version::${CLIENT_VERSION}"
       shell: bash
 
     - name: Download Client Module Package
@@ -257,8 +251,10 @@ jobs:
     container:
       image: refringe/spt-build-server:0.0.6
     steps:
-      - name: Create Directory
-        run: mkdir -p /workspace/refringe/Build/release
+      - name: Clean Directory
+        run: |
+          rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
+          mkdir -p /workspace/refringe/Build/release
 
       - name: Download Server Build Artifact
         uses: actions/download-artifact@v3
