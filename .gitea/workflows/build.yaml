@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.3
+      image: refringe/spt-build-server:0.0.4
     steps:
     - name: Clone
       run: |
@@ -105,13 +105,13 @@ jobs:
           build-
 
     - name: Install Dependencies
-      #if: steps.build-cache.outputs.cache-hit != 'true'
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         npm install
 
     - name: Build Server
-      #if: steps.build-cache.outputs.cache-hit != 'true'
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
@@ -238,3 +238,41 @@ jobs:
         name: launcher-build
         path: /workspace/refringe/Build/launcher/project/Build
         overwrite: true
+
+  extract-and-combine:
+    needs: [build-server, build-modules, build-launcher]
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-server:0.0.4
+    steps:
+      - name: Create combined build directory
+        run: mkdir -p /workspace/refringe/Build/combined-build
+
+      - name: Download Server Build Archive
+        uses: actions/download-artifact@v3
+        with:
+          name: server-build
+          path: /workspace/refringe/Build/combined-build/
+
+      - name: Download Modules Build Archive
+        uses: actions/download-artifact@v3
+        with:
+          name: modules-build
+          path: /workspace/refringe/Build/combined-build/
+
+      - name: Download Launcher Build Archive
+        uses: actions/download-artifact@v3
+        with:
+          name: launcher-build
+          path: /workspace/refringe/Build/combined-build/
+
+      - name: Extract Archives
+        run: |
+          cd /workspace/refringe/Build/combined-build
+          for archive in *.zip; do
+            echo "Extracting $archive..."
+            7z x "$archive" -aoa
+            rm "$archive"
+          done
+          tree /workspace/refringe/Build/combined-build
+        shell: bash
