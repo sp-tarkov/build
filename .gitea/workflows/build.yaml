@@ -271,8 +271,10 @@ jobs:
         with:
           path: /workspace/refringe/Build/build
 
+      - name: Merge Static and Dynamic Files
+        run: cp -rv /workspace/refringe/Build/build/* /workspace/refringe/Build/assembled/
+        shell: bash
+
       - name: List Directory Contents
-        run: |
-          tree /workspace/refringe/Build/build
-          tree /workspace/refringe/Build/assembled
+        run: tree /workspace/refringe/Build/assembled
         shell: bash
