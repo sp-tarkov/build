@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.6
+      image: refringe/spt-build-server:0.0.5
     steps:
     - name: Clone
       run: |
@@ -243,7 +243,7 @@ jobs:
     needs: [build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.6
+      image: refringe/spt-build-server:0.0.5
     steps:
       - name: Create Directory
         run: mkdir -p /workspace/refringe/Build/release
@@ -290,12 +290,9 @@ jobs:
           ls -la /workspace/refringe/Build/release.7z
 
       - name: Upload Release
-        run: |
-          mega-login $MEGA_EMAIL $MEGA_PASSWORD
-          mega-whoami
-          # Name needs to be updated.
-          mega-put /workspace/refringe/Build/release.7z /spt-release/SPT-3.8.0-28965.7z
-          mega-export -a  /spt/SPT-3.8.0-28965.7z --expire=14400M | awk '{print $4}'
+        uses: Difegue/action-megacmd@master
+        with:
+          args: put /workspace/refringe/Build/release.7z /spt-release/SPT-3.8.0-28965.7z
         env:
-          MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
-          MEGA_PASSWORD: ${{ secrets.MEGA_PASSWORD }}
+          USERNAME: ${{ secrets.MEGA_EMAIL }}
+          PASSWORD: ${{ secrets.MEGA_PASSWORD }}
