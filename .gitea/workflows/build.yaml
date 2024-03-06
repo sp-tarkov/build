@@ -16,7 +16,7 @@ jobs:
         id: check
         run: |
           # The tag needs to be saved as a variable so that it can be used throughout the build process.
-          TAG=3.8.0-BE-Test
+          TAG="3.8.0-BE-Test"
           REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
           PROCEED="true"
           for REPO in ${REPOS[@]}; do
@@ -29,11 +29,16 @@ jobs:
           done
           echo "::set-output name=proceed::$PROCEED"
         shell: bash
+
       - name: Tag Not Found
         if: steps.check.outputs.proceed == 'false'
         run: |
           echo "Tag not found in one or more repositories, halting workflow."
           exit 1
+
+      - name: Output Target Tag
+        if: steps.check.outputs.proceed == 'true'
+        run: echo "target_tag=${TAG}" >> $GITEA_OUTPUT
 
   build-server:
     needs: check-tag-exists
@@ -128,6 +133,9 @@ jobs:
         path: /workspace/refringe/Build/server/project/build/
         overwrite: true
 
+    - name: Output Build Type
+      run: echo "build_type=${BUILD_TYPE}" >> $GITEA_OUTPUT
+
   build-modules:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
@@ -212,6 +220,9 @@ jobs:
         path: /workspace/refringe/Build/modules/project/Build
         overwrite: true
 
+    - name: Output Client Version
+      run: echo "client_version=${CLIENT_VERSION}" >> $GITEA_OUTPUT
+
   build-launcher:
     needs: check-tag-exists
     if: needs.check-tag-exists.outputs.proceed == 'true'
@@ -240,7 +251,7 @@ jobs:
         overwrite: true
 
   assemble-release:
-    needs: [build-server, build-modules, build-launcher]
+    needs: [check-tag-exists, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-server:0.0.6
@@ -281,18 +292,19 @@ jobs:
 
       - name: Compress Release
         run: |
+          TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
+          BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
+          CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
+          DATE=$(date +%Y%m%d)
+          RELEASE_FILENAME="SPT-${BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
           cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 ../release.7z ./*
-          echo "Release compressed."
-
-      - name: List Release File
-        run: |
-          ls -la /workspace/refringe/Build/release.7z
+          7z a -mx=9 -m0=lzma2 "../${RELEASE_FILENAME}" ./*
+          echo "Release compressed as ${RELEASE_FILENAME}."
 
       - name: Upload Release
         uses: Difegue/action-megacmd@master
         with:
-          args: put -c /workspace/refringe/Build/release.7z /spt-release/SPT-3.8.0-28965.7z
+          args: put -c "/workspace/refringe/Build/${RELEASE_FILENAME}" "/spt-release/${RELEASE_FILENAME}"
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
