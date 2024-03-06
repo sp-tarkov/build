@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.4
+      image: refringe/spt-build-server:0.0.3
     steps:
     - name: Clone
       run: |
@@ -121,17 +121,11 @@ jobs:
         tree -C /workspace/refringe/Build/server/project/build
       shell: bash
 
-    - name: Compress Server Build Folder
-      run: |
-        cd /workspace/refringe/Build/server/project/build
-        7z a -mx=9 -m0=lzma2 ../server-build.7z ./*
-        echo "Server build folder compressed."
-
-    - name: Archive Server Build
+    - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
         name: server-build
-        path: /workspace/refringe/Build/server/project/server-build.7z
+        path: /workspace/refringe/Build/server/project/build/
         overwrite: true
 
   build-modules:
@@ -211,19 +205,12 @@ jobs:
         tree /workspace/refringe/Build/modules/project/Build
       shell: bash
 
-    - name: Compress Modules Build Folder
-      run: |
-        cd /workspace/refringe/Build/modules/project/Build
-        7z a -mx=9 -m0=lzma2 ../modules-build.7z ./*
-        echo "Modules build folder compressed."
-
-    - name: Archive Modules Build
+    - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
         name: modules-build
-        path: /workspace/refringe/Build/modules/project/modules-build.7z
+        path: /workspace/refringe/Build/modules/project/Build
         overwrite: true
-
 
   build-launcher:
     needs: check-tag-exists
@@ -245,15 +232,9 @@ jobs:
         tree /workspace/refringe/Build/launcher/project/Build
       shell: bash
 
-    - name: Compress Launcher Build Folder
-      run: |
-        cd /workspace/refringe/Build/launcher/project/Build
-        7z a -mx=9 -m0=lzma2 ../launcher-build.7z ./*
-        echo "Launcher build folder compressed."
-
-    - name: Archive Launcher Build
+    - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
         name: launcher-build
-        path: /workspace/refringe/Build/launcher/project/launcher-build.7z
+        path: /workspace/refringe/Build/launcher/project/Build
         overwrite: true
