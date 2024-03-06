@@ -260,22 +260,11 @@ jobs:
           name: modules-build
           path: /workspace/refringe/Build/combined-build/
 
-      - name: List combined-build directory contents
-        run: tree /workspace/refringe/Build/combined-build
-
       - name: Download Launcher Build Archive
         uses: actions/download-artifact@v3
         with:
           name: launcher-build
           path: /workspace/refringe/Build/combined-build/
 
-      - name: Extract Archives
-        run: |
-          cd /workspace/refringe/Build/combined-build
-          for archive in *.zip; do
-            echo "Extracting $archive..."
-            7z x "$archive" -aoa
-            rm "$archive"
-          done
-          tree /workspace/refringe/Build/combined-build
-        shell: bash
+      - name: List combined-build directory contents
+        run: tree /workspace/refringe/Build/combined-build
