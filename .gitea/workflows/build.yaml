@@ -246,25 +246,25 @@ jobs:
       image: refringe/spt-build-server:0.0.4
     steps:
       - name: Create Directory
-        run: mkdir -p /workspace/refringe/Build/assembled
+        run: mkdir -p /workspace/refringe/Build/release
 
       - name: Download Server Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: server-build
-          path: /workspace/refringe/Build/assembled/
+          path: /workspace/refringe/Build/release/
 
       - name: Download Modules Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: modules-build
-          path: /workspace/refringe/Build/assembled/
+          path: /workspace/refringe/Build/release/
 
       - name: Download Launcher Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: launcher-build
-          path: /workspace/refringe/Build/assembled/
+          path: /workspace/refringe/Build/release/
 
       - name: Clone Build Project
         uses: actions/checkout@v3
@@ -272,9 +272,19 @@ jobs:
           path: /workspace/refringe/Build/build
 
       - name: Merge Static and Dynamic Files
-        run: cp -rvf /workspace/refringe/Build/build/project/static/* /workspace/refringe/Build/assembled/
+        run: cp -rvf /workspace/refringe/Build/build/project/static/* /workspace/refringe/Build/release/
         shell: bash
 
-      - name: List Directory Contents
-        run: tree /workspace/refringe/Build/assembled
+      - name: List Release Contents
+        run: tree /workspace/refringe/Build/release
         shell: bash
+
+      - name: Compress Release
+        run: |
+          cd /workspace/refringe/Build/release
+          7z a -mx=9 -m0=lzma2 ../release.7z ./*
+          echo "Release compressed."
+
+      - name: List Release File
+        run: |
+          ls -la /workspace/refringe/Build/release.7z
