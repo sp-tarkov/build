@@ -38,7 +38,7 @@ jobs:
 
       - name: Output Target Tag
         if: steps.check.outputs.proceed == 'true'
-        run: echo "target_tag=${TAG}" >> $GITEA_OUTPUT
+        run: echo "target_tag=${TAG}" >> $GITHUB_OUTPUT
 
   build-server:
     needs: check-tag-exists
@@ -134,7 +134,7 @@ jobs:
         overwrite: true
 
     - name: Output Build Type
-      run: echo "build_type=${BUILD_TYPE}" >> $GITEA_OUTPUT
+      run: echo "build_type=${BUILD_TYPE}" >> $GITHUB_OUTPUT
 
   build-modules:
     needs: check-tag-exists
@@ -221,7 +221,7 @@ jobs:
         overwrite: true
 
     - name: Output Client Version
-      run: echo "client_version=${CLIENT_VERSION}" >> $GITEA_OUTPUT
+      run: echo "client_version=${CLIENT_VERSION}" >> $GITHUB_OUTPUT
 
   build-launcher:
     needs: check-tag-exists
