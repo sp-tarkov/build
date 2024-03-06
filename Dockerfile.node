@@ -9,8 +9,9 @@ FROM node:20.10.0
 #  - wget (to download megacmd)
 #  - gnupg (for adding MEGA.nz repo keys)
 #  - software-properties-common (adding repo)
+#  - p7zip-full (the goat)
 RUN apt-get update && \
-    apt-get install -y git git-lfs zstd tree wget gnupg software-properties-common && \
+    apt-get install -y git git-lfs zstd tree wget gnupg software-properties-common p7zip-full && \
     rm -rf /var/lib/apt/lists/*
 
 # Install the MegaCMD client

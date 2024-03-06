@@ -40,7 +40,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.5
+      image: refringe/spt-build-server:0.0.6
     steps:
     - name: Clone
       run: |
@@ -243,7 +243,7 @@ jobs:
     needs: [build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-server:0.0.5
+      image: refringe/spt-build-server:0.0.6
     steps:
       - name: Create Directory
         run: mkdir -p /workspace/refringe/Build/release
