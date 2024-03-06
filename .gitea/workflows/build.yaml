@@ -273,6 +273,6 @@ jobs:
 
       - name: List Directory Contents
         run: |
-          /workspace/refringe/Build/build
-          /workspace/refringe/Build/assembled
+          tree /workspace/refringe/Build/build
+          tree /workspace/refringe/Build/assembled
         shell: bash
