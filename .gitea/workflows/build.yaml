@@ -292,7 +292,7 @@ jobs:
       - name: Upload Release
         uses: Difegue/action-megacmd@master
         with:
-          args: put /workspace/refringe/Build/release.7z /spt-release/SPT-3.8.0-28965.7z
+          args: put -c /workspace/refringe/Build/release.7z /spt-release/SPT-3.8.0-28965.7z
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
