@@ -293,10 +293,27 @@ jobs:
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
           CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
           DATE=$(date +%Y%m%d)
-          RELEASE_FILENAME="SPT-${BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+
+          # Make BUILD_TYPE uppercase
+          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+
+          # Conditionally format the RELEASE_FILENAME based on BUILD_TYPE
+          if [ "$BUILD_TYPE" = "release" ]; then
+            RELEASE_FILENAME="SPT-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+          else
+            RELEASE_FILENAME="SPT-${UPPER_BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+          fi
+
           cd /workspace/refringe/Build/release
           7z a -mx=9 -m0=lzma2 "../${RELEASE_FILENAME}" ./*
           echo "Release compressed as ${RELEASE_FILENAME}."
+        shell: bash
+
+      - name: Echo Release Filename
+        run: |
+          echo "/workspace/refringe/Build/${RELEASE_FILENAME}"
+          echo "/spt-release/${RELEASE_FILENAME}"
+        shell: bash
 
       - name: Upload Release
         uses: Difegue/action-megacmd@master
