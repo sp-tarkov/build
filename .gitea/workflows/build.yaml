@@ -287,7 +287,8 @@ jobs:
         run: tree /workspace/refringe/Build/release
         shell: bash
 
-      - name: Compress Release
+      - name: Generate Release Filename
+        id: generate-filename
         run: |
           TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
@@ -297,28 +298,33 @@ jobs:
           # Make BUILD_TYPE uppercase
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
 
-          # Conditionally format the RELEASE_FILENAME based on BUILD_TYPE
+          # Conditionally format the FILENAME based on BUILD_TYPE
           if [ "$BUILD_TYPE" = "release" ]; then
-            RELEASE_FILENAME="SPT-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+            FILENAME="SPT-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
           else
-            RELEASE_FILENAME="SPT-${UPPER_BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+            FILENAME="SPT-${UPPER_BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
           fi
 
+          echo "::set-output name=filename=${FILENAME}"
+        shell: bash
+
+      - name: Compress Release
+        run: |
           cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 "../${RELEASE_FILENAME}" ./*
-          echo "Release compressed as ${RELEASE_FILENAME}."
+          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.filename }}" ./*
+          echo "Release compressed as ${{ steps.generate-filename.outputs.filename }}."
         shell: bash
 
       - name: Echo Release Filename
         run: |
-          echo "/workspace/refringe/Build/${RELEASE_FILENAME}"
-          echo "/spt-release/${RELEASE_FILENAME}"
+          echo "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}"
+          echo "/spt-release/${{ steps.generate-filename.outputs.filename }}"
         shell: bash
 
       - name: Upload Release
         uses: Difegue/action-megacmd@master
         with:
-          args: put -c /workspace/refringe/Build/"${RELEASE_FILENAME}" /spt-release/"${RELEASE_FILENAME}"
+          args: put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
