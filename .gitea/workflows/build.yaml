@@ -305,7 +305,7 @@ jobs:
             FILENAME="SPT-${UPPER_BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
           fi
 
-          echo "::set-output name=filename=${FILENAME}"
+          echo "::set-output name=filename::${FILENAME}"
         shell: bash
 
       - name: Compress Release
