@@ -332,7 +332,7 @@ jobs:
       - name: Generating Release Link
         uses: Difegue/action-megacmd@master
         with:
-          args: export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f
+          args: export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f | awk '{print $4}'
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
