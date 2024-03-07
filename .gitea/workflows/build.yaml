@@ -290,6 +290,7 @@ jobs:
       - name: Generate Release Filename
         id: generate-filename
         run: |
+          # TODO: Instead of the tag, the version number should be parsed.
           TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
           CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
