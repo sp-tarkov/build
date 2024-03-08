@@ -17,7 +17,7 @@ jobs:
         id: check
         run: |
           # The tag needs to be saved as a variable so that it can be used throughout the build process.
-          TAG="3.8.0-BE-Test"
+          TAG="3.8.0-BE-20240308"
           REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
           PROCEED="true"
           for REPO in ${REPOS[@]}; do
@@ -50,7 +50,7 @@ jobs:
     - name: Clone
       run: |
         rm -rf /workspace/refringe/Build/server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/server
 
     - name: Pull LFS Files
       run: |
@@ -144,7 +144,7 @@ jobs:
     - name: Clone
       run: |
         rm -rf /workspace/refringe/Build/modules
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/modules
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/modules
 
     - name: Fetch Server Core Config
       run: |
@@ -154,7 +154,7 @@ jobs:
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
-        git fetch --depth=1 origin 3.8.0-BE-Test
+        git fetch --depth=1 origin 3.8.0-BE-20240308
         git checkout FETCH_HEAD
         ls -la project/assets/configs
       shell: bash
@@ -228,7 +228,7 @@ jobs:
     - name: Clone
       run: |
         rm -rf /workspace/refringe/Build/launcher
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-Test --depth 1 /workspace/refringe/Build/launcher
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/launcher
 
     - name: Build Launcher
       run: |
