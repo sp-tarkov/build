@@ -36,15 +36,11 @@ To build the Modules project, a link to a private repository is required for the
 Be sure to update the version number to the next available version before building and pushing the Docker images. you must be logged into Docker Desktop to push the images.
 
 ```
-# Build and push the spt-build-server Docker image to the Docker Hub
-docker build -t refringe/spt-build-server:0.0.0 -t refringe/spt-build-server:latest -f Dockerfile.server .
-docker push refringe/spt-build-server --all-tags
+# Build and push the spt-build-node Docker image to the Docker Hub
+docker build -t refringe/spt-build-node:0.0.0 -t refringe/spt-build-node:latest -f Dockerfile.node .
+docker push refringe/spt-build-node --all-tags
 
-# Build and push the spt-build-modules Docker image to the Docker Hub
-docker build -t refringe/spt-build-modules:0.0.0 -t refringe/spt-build-modules:latest -f Dockerfile.modules .
-docker push refringe/spt-build-modules --all-tags
-
-# Build and push the spt-build-launcher Docker image to the Docker Hub
-docker build -t refringe/spt-build-launcher:0.0.0 -t refringe/spt-build-launcher:latest -f Dockerfile.launcher .
-docker push refringe/spt-build-launcher --all-tags
+# Build and push the spt-build-dotnet Docker image to the Docker Hub
+docker build -t refringe/spt-build-dotnet:0.0.0 -t refringe/spt-build-dotnet:latest -f Dockerfile.dotnet .
+docker push refringe/spt-build-dotnet --all-tags
 ```
