@@ -327,8 +327,15 @@ jobs:
         run: |
           mega-https on
           mega-login "${MEGA_EMAIL}" "${MEGA_PASSWORD}"
+
           mega-put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
-          mega-export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f
+
+          # Generate link and save it.
+          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f)
+          LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
+          echo "::set-output name=link_mega::${LINK_MEGA}"
+
+          mega-logout
         shell: bash
         env:
           MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
@@ -357,6 +364,8 @@ jobs:
               fi
             fi
           done
+
+          mega-logout
         shell: bash
         env:
           MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
