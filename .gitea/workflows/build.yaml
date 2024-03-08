@@ -120,7 +120,7 @@ jobs:
         cd /workspace/refringe/Build/server/project
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
-        npm run build:$BUILD_TYPE
+        npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
         printf "\nBuilt!\n\n"
         tree -C /workspace/refringe/Build/server/project/build
       shell: bash
