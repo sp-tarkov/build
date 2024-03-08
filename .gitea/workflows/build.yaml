@@ -139,6 +139,7 @@ jobs:
     container:
       image: refringe/spt-build-dotnet:1.0.0
     outputs:
+      spt_version: ${{ steps.extract-client-version.outputs.spt_version }}
       client_version: ${{ steps.extract-client-version.outputs.client_version }}
     steps:
     - name: Clone
@@ -163,10 +164,12 @@ jobs:
       id: extract-client-version
       run: |
         cd /workspace/refringe/Build/server-core/project/assets/configs
+        SPT_VERSION=$(jq -r '.akiVersion' core.json)
         FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
         CLIENT_VERSION=${FULL_VERSION##*.}
         echo "Extracted Client Version: $CLIENT_VERSION"
         echo "::set-output name=client_version::${CLIENT_VERSION}"
+        echo "::set-output name=spt_version::${SPT_VERSION}"
       shell: bash
 
     - name: Download Client Module Package
@@ -290,9 +293,8 @@ jobs:
       - name: Generate Release Filename
         id: generate-filename
         run: |
-          # TODO: Instead of the tag, the version number should be parsed.
-          TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
+          SPT_VERSION${{ needs.build-modules.outputs.spt_version }}
           CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
           DATE=$(date +%Y%m%d)
 
@@ -301,9 +303,9 @@ jobs:
 
           # Conditionally format the FILENAME based on BUILD_TYPE
           if [ "$BUILD_TYPE" = "release" ]; then
-            FILENAME="SPT-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+            FILENAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
           else
-            FILENAME="SPT-${UPPER_BUILD_TYPE}-${TARGET_TAG}-${CLIENT_VERSION}-${DATE}.7z"
+            FILENAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
           fi
 
           echo "::set-output name=filename::${FILENAME}"
@@ -314,12 +316,6 @@ jobs:
           cd /workspace/refringe/Build/release
           7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.filename }}" ./*
           echo "Release compressed as ${{ steps.generate-filename.outputs.filename }}."
-        shell: bash
-
-      - name: Echo Release Filename
-        run: |
-          echo "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}"
-          echo "/spt-release/${{ steps.generate-filename.outputs.filename }}"
         shell: bash
 
       - name: Upload Release
