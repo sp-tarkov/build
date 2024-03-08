@@ -49,8 +49,9 @@ jobs:
     steps:
     - name: Clone
       run: |
+        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
         rm -rf /workspace/refringe/Build/server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/server
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/server
 
     - name: Pull LFS Files
       run: |
@@ -144,18 +145,20 @@ jobs:
     steps:
     - name: Clone
       run: |
+        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
         rm -rf /workspace/refringe/Build/modules
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/modules
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/modules
 
     - name: Fetch Server Core Config
       run: |
+        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
         rm -rf /workspace/refringe/Build/server-core
         git init /workspace/refringe/Build/server-core
         cd /workspace/refringe/Build/server-core
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
-        git fetch --depth=1 origin 3.8.0-BE-20240308
+        git fetch --depth=1 origin "${TARGET_TAG}"
         git checkout FETCH_HEAD
         ls -la project/assets/configs
       shell: bash
@@ -230,8 +233,9 @@ jobs:
     steps:
     - name: Clone
       run: |
+        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
         rm -rf /workspace/refringe/Build/launcher
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch 3.8.0-BE-20240308 --depth 1 /workspace/refringe/Build/launcher
+        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/launcher
 
     - name: Build Launcher
       run: |
