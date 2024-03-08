@@ -331,8 +331,8 @@ jobs:
           mega-export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f
         shell: bash
         env:
-          USERNAME: ${{ secrets.MEGA_EMAIL }}
-          PASSWORD: ${{ secrets.MEGA_PASSWORD }}
+          MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
+          MEGA_PASSWORD: ${{ secrets.MEGA_PASSWORD }}
 
       - name: Clean Old Mega Releases
         run: |
