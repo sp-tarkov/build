@@ -279,8 +279,8 @@ jobs:
         with:
           path: /workspace/refringe/Build/build
 
-      - name: Merge Static and Dynamic Files
-        run: cp -rvf /workspace/refringe/Build/build/project/static/* /workspace/refringe/Build/release/
+      - name: Merge Static Assets and Dynamic Files
+        run: cp -rvf /workspace/refringe/Build/build/static-assets/* /workspace/refringe/Build/release/
         shell: bash
 
       - name: List Release Contents
