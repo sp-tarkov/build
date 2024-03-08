@@ -322,18 +322,42 @@ jobs:
           echo "Release compressed as ${{ steps.generate-filename.outputs.filename }}."
         shell: bash
 
-      - name: Upload Release
-        uses: Difegue/action-megacmd@master
-        with:
-          args: put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
+      - name: Upload Mega Release
+        id: upload-mega
+        run: |
+          mega-https on
+          mega-login "${MEGA_EMAIL}" "${MEGA_PASSWORD}"
+          mega-put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
+          mega-export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f
+        shell: bash
         env:
           USERNAME: ${{ secrets.MEGA_EMAIL }}
           PASSWORD: ${{ secrets.MEGA_PASSWORD }}
 
-      - name: Generating Release Link
-        uses: Difegue/action-megacmd@master
-        with:
-          args: export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f
+      - name: Clean Old Mega Releases
+        run: |
+          mega-https on
+          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
+
+          # List files and filter out old DEBUG or BLEEDING files
+          mega-ls /spt-release | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
+            # Extract date from filename
+            if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+              file_date="${BASH_REMATCH[1]}"
+              file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+
+              # Get current date minus 30 days
+              current_date=$(date +%s)
+              limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
+
+              # Compare dates and delete old files
+              if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
+                echo "Deleting old file: $filename"
+                mega-rm "/spt-release/$filename"
+              fi
+            fi
+          done
+        shell: bash
         env:
-          USERNAME: ${{ secrets.MEGA_EMAIL }}
-          PASSWORD: ${{ secrets.MEGA_PASSWORD }}
+          MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
+          MEGA_PASSWORD: ${{ secrets.MEGA_PASSWORD }}

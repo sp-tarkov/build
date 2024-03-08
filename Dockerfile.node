@@ -1,13 +1,26 @@
-# Use the Node v20.10.0 base image
-FROM node:20.10.0
+# Use the Node v20.10.0, Debian 12 base image
+FROM node:20.10.0-bookworm
 
 # Install necessary tools and dependencies
+#  - wget (for downloading MegaCMD)
 #  - git (duh)
 #  - git-lfs (duh)
 #  - zstd (caching action dependancy)
 #  - tree (pretty print build directory structure)
 #  - p7zip-full (the goat)
 RUN apt-get update && \
-    apt-get install -y git git-lfs zstd tree p7zip-full && \
+    apt-get install -y wget git git-lfs zstd tree p7zip-full && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+#  - MegaCMD (for uploading to Mega.nz)
+#      - libc-ares2 (MegaCMD dependancy)
+#      - libmediainfo0v5 (MegaCMD dependancy)
+#      - libpcrecpp0v5 (MegaCMD dependancy)
+#      - libzen0v5 (MegaCMD dependancy)
+RUN apt-get update && \
+    apt-get install -y libc-ares2 libmediainfo0v5 libpcrecpp0v5 libzen0v5 && \
+    wget https://mega.nz/linux/repo/Debian_12/amd64/megacmd-Debian_12_amd64.deb && \
+    dpkg -i megacmd-Debian_12_amd64.deb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
