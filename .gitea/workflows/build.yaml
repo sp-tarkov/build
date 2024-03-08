@@ -298,7 +298,7 @@ jobs:
         id: generate-filename
         run: |
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
-          SPT_VERSION${{ needs.build-modules.outputs.spt_version }}
+          SPT_VERSION=${{ needs.build-modules.outputs.spt_version }}
           CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
           DATE=$(date +%Y%m%d)
 
