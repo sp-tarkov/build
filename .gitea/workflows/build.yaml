@@ -332,7 +332,7 @@ jobs:
         id: upload-mega
         run: |
           mega-https on
-          mega-login "${MEGA_EMAIL}" "${MEGA_PASSWORD}"
+          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
           mega-put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
 
@@ -343,9 +343,6 @@ jobs:
 
           mega-logout
         shell: bash
-        env:
-          MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
-          MEGA_PASSWORD: ${{ secrets.MEGA_PASSWORD }}
 
       - name: Clean Old Mega Releases
         run: |
@@ -373,6 +370,3 @@ jobs:
 
           mega-logout
         shell: bash
-        env:
-          MEGA_EMAIL: ${{ secrets.MEGA_EMAIL }}
-          MEGA_PASSWORD: ${{ secrets.MEGA_PASSWORD }}
