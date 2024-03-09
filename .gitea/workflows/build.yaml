@@ -335,38 +335,15 @@ jobs:
           sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
         shell: bash
 
-      - name: Clean Old SFTP Releases
+      - name: Test SFTP Listing
         run: |
-          cd /workspace/refringe/Build/
-          echo "Preparing known_hosts for host key verification..."
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
 
-          echo "Generating initial sftp_batch.txt..."
-          echo "cd /public" > sftp_batch.txt
-
           echo "Listing files with sftp..."
-          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public <<< "ls" 2>&1)
-          echo "Files listed."
+          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} <<< $'ls /public')
 
-          echo "Processing file list..."
-          echo "$FILE_LIST" | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
-              echo "Processing $filename..."
-              if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
-                file_date="${BASH_REMATCH[1]}"
-                file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
-
-                current_date=$(date +%s)
-                limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
-
-                if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                  echo "Queueing deletion for: $filename"
-                  echo "rm \"/public/$filename\"" >> sftp_batch.txt
-                fi
-              fi
-          done
-
-          echo "Executing deletion commands..."
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -b sftp_batch.txt -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} 2>&1
+          echo "Listed files:"
+          echo "$FILE_LIST"
         shell: bash
 
       - name: Upload Release to Mega
