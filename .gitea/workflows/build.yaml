@@ -127,10 +127,12 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: server-build
         path: /workspace/refringe/Build/server/project/build/
+        compression-level: 0
+        retention-days: 1
         overwrite: true
 
   build-modules:
@@ -218,10 +220,12 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: modules-build
         path: /workspace/refringe/Build/modules/project/Build
+        compression-level: 0
+        retention-days: 1
         overwrite: true
 
   build-launcher:
@@ -246,10 +250,12 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: launcher-build
         path: /workspace/refringe/Build/launcher/project/Build
+        compression-level: 0
+        retention-days: 1
         overwrite: true
 
   assemble-release:
