@@ -335,14 +335,25 @@ jobs:
           sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
         shell: bash
 
-      - name: Clean Old SFTP Releases
+      - name: Clean Old HTTP Source Releases
         run: |
           cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
-          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} <<< $'ls /public')
 
-          echo "$FILE_LIST" | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | sed 's/\/public\///' | while read -r filename; do
-              echo "Processing $filename..."
+          # Creating a script for sftp to execute
+          echo "cd /public" > sftp_commands.txt
+          echo "ls" >> sftp_commands.txt
+
+          # Executing sftp command and filtering output
+          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+
+          echo "Files listed:"
+          echo "$FILE_LIST"
+
+          # Filtering and processing the file list
+          echo "$FILE_LIST" | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z' | awk '{print $NF}' | while read filename; do
+              echo "Processing file: $filename"
+              # Extract date from filename
               if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
                 file_date="${BASH_REMATCH[1]}"
                 file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
@@ -351,17 +362,19 @@ jobs:
                 limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
 
                 if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                  echo "Queueing deletion for: $filename"
-                  echo "rm \"$filename\"" >> sftp_batch.txt
+                  echo "Deleting old file: $filename"
+                  # Append delete command to sftp batch file
+                  echo "rm \"$filename\"" >> delete_commands.txt
                 fi
               fi
           done
 
-          if [ -s sftp_batch.txt ]; then
-            echo "Executing deletion commands..."
-            sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -b sftp_batch.txt -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
+          # Check if there are files to delete and execute
+          if [ -s delete_commands.txt ]; then
+            echo "Deleting files..."
+            sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
           else
-            echo "No files to delete."
+            echo "No old files to delete."
           fi
         shell: bash
 
