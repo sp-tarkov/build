@@ -43,7 +43,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.2
+      image: refringe/spt-build-node:1.0.3
     outputs:
       build_type: ${{ steps.build-type.outputs.build_type }}
     steps:
@@ -262,7 +262,7 @@ jobs:
     needs: [check-tag-exists, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.2
+      image: refringe/spt-build-node:1.0.3
     steps:
       - name: Clean Directory
         run: |
@@ -337,26 +337,25 @@ jobs:
 
       - name: Clean Old SFTP Releases
         run: |
+          cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" ssh -oPort=${{ secrets.SFTP_PORT }} -oConnectTimeout=20 -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }} << EOF
+          lftp -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_PORT }} << EOF
+            set net:timeout 20
+            set net:connect-timeout 20
+            set sftp:connect-program "ssh -a -x -o ConnectTimeout=20 -o UserKnownHostsFile=$(pwd)/known_hosts -o StrictHostKeyChecking=yes"
             cd /public
-            # With a list of debug and bleeding edge builds...
-            ls | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
-              # Extract date from filename
-              if [[ "\$filename" =~ ([0-9]{8})\.7z$ ]]; then
-                file_date="\${BASH_REMATCH[1]}"
-                file_date_fmt=\$(date -d "\${file_date:0:4}-\${file_date:4:2}-\${file_date:6:2}" +%s)
-
-                # Get current date minus 30 days
-                current_date=\$(date +%s)
-                limit_date=\$(date -d "@\$((current_date - 30 * 24 * 3600))" +%s)
-
-                # Compare dates and delete old files
-                if [[ "\$file_date_fmt" -lt "\$limit_date" ]]; then
-                  echo "Deleting old file: \$filename"
-                  rm "/public/\$filename"
-                fi
-              fi
+            cls -1 | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | awk '{
+              match(\$0, /([0-9]{8})\.7z$/, arr);
+              "date +%s" | getline current_date;
+              file_date=substr(arr[1],1,4) "-" substr(arr[1],5,2) "-" substr(arr[1],7,2);
+              "date -d" file_date " +%s" | getline file_date_sec;
+              limit_date=current_date - (30 * 24 * 3600);
+              if (file_date_sec < limit_date) {
+                print \$0;
+              }
+            }' | while read filename; do
+              echo "Deleting old file: \$filename"
+              rm "\$filename"
             done
           EOF
         shell: bash
