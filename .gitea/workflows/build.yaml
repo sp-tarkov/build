@@ -328,7 +328,17 @@ jobs:
           echo "Release compressed as ${{ steps.generate-filename.outputs.filename }}."
         shell: bash
 
-      - name: Upload Mega Release
+      - name: Upload Release to HTTP Source
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: "${{ secrets.SFTP_HOST }}"
+          username: "${{ secrets.SFTP_USERNAME }}"
+          password: "${{ secrets.SFTP_PASSWORD }}"
+          port: "${{ secrets.SFTP_PORT }}"
+          source: "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}"
+          target: "/public/"
+
+      - name: Upload Release to Mega
         id: upload-mega
         run: |
           mega-https on
