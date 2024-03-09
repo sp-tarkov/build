@@ -368,5 +368,8 @@ jobs:
             fi
           done
 
+          # Remove old file versions to save space.
+          mega-deleteversions -f /spt-release/*
+
           mega-logout
         shell: bash
