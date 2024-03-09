@@ -127,7 +127,7 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: server-build
         path: /workspace/refringe/Build/server/project/build/
@@ -220,7 +220,7 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: modules-build
         path: /workspace/refringe/Build/modules/project/Build
@@ -250,7 +250,7 @@ jobs:
       shell: bash
 
     - name: Archive Build
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: launcher-build
         path: /workspace/refringe/Build/launcher/project/Build
