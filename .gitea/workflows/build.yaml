@@ -332,7 +332,7 @@ jobs:
         run: |
           cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-          sshpass -p ${{ secrets.SFTP_PASSWORD }} scp -o UserKnownHostsFile=known_host -o StrictHostKeyChecking=yes "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
         shell: bash
 
       - name: Upload Release to Mega
