@@ -43,7 +43,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.1
+      image: refringe/spt-build-node:1.0.2
     outputs:
       build_type: ${{ steps.build-type.outputs.build_type }}
     steps:
@@ -262,7 +262,7 @@ jobs:
     needs: [check-tag-exists, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.1
+      image: refringe/spt-build-node:1.0.2
     steps:
       - name: Clean Directory
         run: |
@@ -329,14 +329,11 @@ jobs:
         shell: bash
 
       - name: Upload Release to HTTP Source
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: "${{ secrets.SFTP_HOST }}"
-          username: "${{ secrets.SFTP_USERNAME }}"
-          password: "${{ secrets.SFTP_PASSWORD }}"
-          port: "${{ secrets.SFTP_PORT }}"
-          source: "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}"
-          target: "/public/"
+        run: |
+          cd /workspace/refringe/Build/
+          echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
+          sshpass -p ${{ secrets.SFTP_PASSWORD }} scp -o UserKnownHostsFile=known_host -o StrictHostKeyChecking=yes "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+        shell: bash
 
       - name: Upload Release to Mega
         id: upload-mega
