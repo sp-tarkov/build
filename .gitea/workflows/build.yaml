@@ -43,7 +43,7 @@ jobs:
     if: needs.check-tag-exists.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.3
+      image: refringe/spt-build-node:1.0.4
     outputs:
       build_type: ${{ steps.build-type.outputs.build_type }}
     steps:
@@ -262,7 +262,7 @@ jobs:
     needs: [check-tag-exists, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.3
+      image: refringe/spt-build-node:1.0.4
     outputs:
       build_name: ${{ steps.generate-filename.outputs.build_name }}
     steps:
@@ -336,7 +336,7 @@ jobs:
     needs: [assemble-release]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.3
+      image: refringe/spt-build-node:1.0.4
     steps:
       - name: Download Release Artifact
         uses: actions/download-artifact@v3
