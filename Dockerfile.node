@@ -10,18 +10,27 @@ FROM node:20.10.0-bookworm
 #  - p7zip-full (the goat)
 #  - sshpass (for automated SSH authentication)
 #  - lftp (for automated SFTP commands)
+#  - python3 (for running python scripts)
+#  - python3-pip (for installing python packages)
+#  - python3-venv (for creating python virtual environments)
 RUN apt-get update && \
-    apt-get install -y wget git git-lfs zstd tree p7zip-full sshpass lftp && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y wget git git-lfs zstd tree p7zip-full sshpass python3 python3-pip python3-venv
 
-#  - MegaCMD (for uploading to Mega.nz)
-#      - libc-ares2 (MegaCMD dependancy)
-#      - libmediainfo0v5 (MegaCMD dependancy)
-#      - libpcrecpp0v5 (MegaCMD dependancy)
-#      - libzen0v5 (MegaCMD dependancy)
-RUN apt-get update && \
-    apt-get install -y libc-ares2 libmediainfo0v5 libpcrecpp0v5 libzen0v5 && \
+# Create a virtual environment for Python packages
+RUN python3 -m venv /opt/venv
+
+# Activate virtual environment and install python applications
+#  - torf-cli (for creating .torrent files)
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip && \
+    pip install torf-cli
+
+# MegaCMD (for uploading to Mega.nz)
+#  - libc-ares2 (MegaCMD dependancy)
+#  - libmediainfo0v5 (MegaCMD dependancy)
+#  - libpcrecpp0v5 (MegaCMD dependancy)
+#  - libzen0v5 (MegaCMD dependancy)
+RUN apt-get install -y libc-ares2 libmediainfo0v5 libpcrecpp0v5 libzen0v5 && \
     wget https://mega.nz/linux/repo/Debian_12/amd64/megacmd-Debian_12_amd64.deb && \
     dpkg -i megacmd-Debian_12_amd64.deb && \
     apt-get clean && \

@@ -323,18 +323,11 @@ jobs:
           echo "::set-output name=build_name::${BUILD_NAME}"
         shell: bash
 
-      - name: Compress Release
-        run: |
-          cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
-          echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
-        shell: bash
-
       - name: Artifact Release
         uses: actions/upload-artifact@v3
         with:
           name: release-artifact
-          path: /workspace/refringe/Build/${{ steps.generate-filename.outputs.build_name }}
+          path: /workspace/refringe/Build/release
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -349,16 +342,25 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: release-artifact
-          path: /workspace/refringe/Build/
+          path: /workspace/refringe/Build/release
 
-      - name: Upload Release to HTTP Source
+      - name: Compress Release
+        run: |
+          cd /workspace/refringe/Build/release
+          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
+          echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
+        shell: bash
+
+      - name: Upload Release to HTTPS Source
+        id: upload-https
         run: |
           cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
           sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+          echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/${{ needs.assemble-release.outputs.build_name }}"
         shell: bash
 
-      - name: Clean Old HTTP Source Releases
+      - name: Clean Old HTTPS Source Releases
         run: |
           cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
@@ -444,4 +446,94 @@ jobs:
           mega-deleteversions -f /spt-release/*
 
           mega-logout
+        shell: bash
+
+      - name: Create Torrent File
+        run: |
+          cd /workspace/refringe/Build/
+          BUILD_NAME="${{ steps.generate-filename.outputs.build_name }}"
+          BASE_NAME="${BUILD_NAME%.7z}"
+          torf --yes --output "${BASE_NAME}.torrent" \
+              --webseed "${{ steps.upload-https.outputs.link_https }}" \
+              --tracker "udp://tracker.dler.com:6969/announce" \
+              --tracker "http://t.acg.rip:6699/announce" \
+              --tracker "http://tracker.bt4g.com:2095/announce" \
+              --tracker "http://tracker.files.fm:6969/announce" \
+              --tracker "http://open.acgnxtracker.com:80/announce" \
+              --tracker "udp://tracker.torrent.eu.org:451/announce" \
+              --tracker "https://tracker1.520.jp:443/announce"  \
+              --tracker "https://tracker.tamersunion.org:443/announce" \
+              --tracker "https://trackers.mlsub.net:443/announce" \
+              --tracker "http://tracker.renfei.net:8080/announce" \
+              --tracker "udp://oh.fuuuuuck.com:6969/announce" \
+              --tracker "udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
+              --tracker "udp://odd-hd.fr:6969/announce" \
+              --tracker "https://tracker.yemekyedim.com:443/announce" \
+              --tracker "udp://tracker.jamesthebard.net:6969/announce" \
+              --tracker "udp://martin-gebhardt.eu:25/announce" \
+              --tracker "udp://tracker.picotorrent.one:6969/announce" \
+              --tracker "udp://open.stealth.si:80/announce" \
+              --tracker "udp://tracker2.dler.com:80/announce" \
+              --tracker "udp://movies.zsw.ca:6969/announce" \
+              --tracker "http://bt.okmp3.ru:2710/announce" \
+              --tracker "https://www.peckservers.com:9443/announce" \
+              --tracker "udp://opentracker.io:6969/announce" \
+              --tracker "udp://tracker.0x7c0.com:6969/announce" \
+              --tracker "http://bvarf.tracker.sh:2086/announce" \
+              --tracker "udp://tracker.therarbg.com:6969/announce" \
+              --tracker "udp://tracker.fnix.net:6969/announce" \
+              --tracker "udp://tracker.moeking.me:6969/announce" \
+              --tracker "udp://epider.me:6969/announce" \
+              --tracker "https://t1.hloli.org:443/announce" \
+              --tracker "udp://d40969.acod.regrucolo.ru:6969/announce" \
+              --tracker "http://retracker.seven-sky.net:80/announce" \
+              --tracker "udp://tracker.opentrackr.org:1337/announce" \
+              --tracker "udp://exodus.desync.com:6969/announce" \
+              --tracker "udp://moonburrow.club:6969/announce" \
+              --tracker "udp://tracker.tryhackx.org:6969/announce" \
+              --tracker "udp://ns1.monolithindustries.com:6969/announce" \
+              --tracker "udp://tracker.t-rb.org:6969/announce" \
+              --tracker "udp://explodie.org:6969/announce" \
+              --tracker "udp://p2p.publictracker.xyz:6969/announce" \
+              --tracker "udp://www.torrent.eu.org:451/announce" \
+              --tracker "udp://bt1.archive.org:6969/announce" \
+              --tracker "http://p2p.0g.cx:6969/announce" \
+              --tracker "https://tr.qfruiti.in:443/announce" \
+              --tracker "https://tr.qfruiti.com:443/announce" \
+              --tracker "udp://u4.trakx.crim.ist:1337/announce" \
+              --tracker "udp://new-line.net:6969/announce" \
+              --tracker "http://aboutbeautifulgallopinghorsesinthegreenpasture.online:80/announce" \
+              --tracker "https://shahidrazi.online:443/announce" \
+              --tracker "udp://tracker.therarbg.to:6969/announce" \
+              --tracker "udp://retracker.lanta.me:2710/announce" \
+              --tracker "https://tracker.lilithraws.org:443/announce" \
+              --tracker "udp://6ahddutb1ucc3cp.ru:6969/announce" \
+              --tracker "http://tracker.mywaifu.best:6969/announce" \
+              --tracker "udp://tracker.cubonegro.lol:6969/announce" \
+              --tracker "udp://tamas3.ynh.fr:6969/announce" \
+              --tracker "udp://6.pocketnet.app:6969/announce" \
+              --tracker "udp://tracker.torrust-demo.com:6969/announce" \
+              --tracker "udp://evan.im:6969/announce" \
+              --tracker "udp://1c.premierzal.ru:6969/announce" \
+              --tracker "udp://ttk2.nbaonlineservice.com:6969/announce" \
+              --tracker "https://track3r.site:443/announce" \
+              --tracker "udp://jutone.com:6969/announce" \
+              --tracker "udp://tracker.srv00.com:6969/announce" \
+              --tracker "https://tracker.loligirl.cn:443/announce" \
+              --tracker "udp://open.demonii.com:1337/announce" \
+              --tracker "udp://open.tracker.cl:1337/announce" \
+              --tracker "http://tracker1.itzmx.com:8080/announce" \
+              --tracker "https://tracker.gcrreen.xyz:443/announce" \
+              --tracker "udp://open.dstud.io:6969/announce" \
+              --tracker "https://tracker.cloudit.top:443/announce" \
+              --tracker "udp://tracker.filemail.com:6969/announce" \
+              --tracker "udp://tracker.qu.ax:6969/announce" \
+              --tracker "http://open.acgtracker.com:1096/announce" \
+              --tracker "udp://tk1.trackerservers.com:8080/announce" \
+              --tracker "udp://black-bird.ynh.fr:6969/announce" \
+              --comment "Offical ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
+              --creator "sp-tarkov.com"
+              --noprivate
+              --verbose
+              "${{ steps.generate-filename.outputs.build_name }}"
         shell: bash

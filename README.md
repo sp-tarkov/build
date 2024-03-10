@@ -37,7 +37,7 @@ Be sure to update the version number to the next available version before buildi
 
 ```
 # Build and push the spt-build-node Docker image to the Docker Hub
-docker build -t refringe/spt-build-node:1.0.4 -t refringe/spt-build-node:latest -f Dockerfile.node .
+docker build -t refringe/spt-build-node:1.0.5 -t refringe/spt-build-node:latest -f Dockerfile.node .
 docker push refringe/spt-build-node --all-tags
 
 # Build and push the spt-build-dotnet Docker image to the Docker Hub
