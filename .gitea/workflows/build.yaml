@@ -347,8 +347,8 @@ jobs:
       - name: Compress Release
         run: |
           cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
-          echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
+          7z a -mx=9 -m0=lzma2 "../${{ needs.assemble-release.outputs.build_name }}" ./*
+          echo "Release compressed as ${{ needs.assemble-release.outputs.build_name }}."
         shell: bash
 
       - name: Upload Release to HTTPS Source
@@ -451,7 +451,7 @@ jobs:
       - name: Create Torrent File
         run: |
           cd /workspace/refringe/Build/
-          BUILD_NAME="${{ steps.generate-filename.outputs.build_name }}"
+          BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
           BASE_NAME="${BUILD_NAME%.7z}"
           torf --yes --output "${BASE_NAME}.torrent" \
               --webseed "${{ steps.upload-https.outputs.link_https }}" \
@@ -535,5 +535,5 @@ jobs:
               --creator "sp-tarkov.com"
               --noprivate
               --verbose
-              "${{ steps.generate-filename.outputs.build_name }}"
+              "${{ needs.assemble-release.outputs.build_name }}"
         shell: bash
