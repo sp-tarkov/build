@@ -263,6 +263,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.3
+    outputs:
+      build_name: ${{ steps.extract-client-version.outputs.build_name }}
     steps:
       - name: Clean Directory
         run: |
@@ -311,28 +313,34 @@ jobs:
           # Make BUILD_TYPE uppercase
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
 
-          # Conditionally format the FILENAME based on BUILD_TYPE
+          # Conditionally format the BUILD_NAME based on BUILD_TYPE
           if [ "$BUILD_TYPE" = "release" ]; then
-            FILENAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
+            BUILD_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
           else
-            FILENAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
+            BUILD_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
           fi
 
-          echo "::set-output name=filename::${FILENAME}"
+          echo "::set-output name=build_name::${BUILD_NAME}"
         shell: bash
 
       - name: Compress Release
         run: |
           cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.filename }}" ./*
-          echo "Release compressed as ${{ steps.generate-filename.outputs.filename }}."
+          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
+          echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
         shell: bash
 
+  publish-release:
+    needs: [assemble-release]
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-node:1.0.3
+    steps:
       - name: Upload Release to HTTP Source
         run: |
           cd /workspace/refringe/Build/
           echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
         shell: bash
 
       - name: Clean Old HTTP Source Releases
@@ -383,10 +391,10 @@ jobs:
           mega-https on
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-          mega-put -c "/workspace/refringe/Build/${{ steps.generate-filename.outputs.filename }}" "/spt-release/${{ steps.generate-filename.outputs.filename }}"
+          mega-put -c "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
 
           # Generate link and save it.
-          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.filename }}" -f)
+          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ needs.assemble-release.outputs.build_name }}" -f)
           LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
           echo "::set-output name=link_mega::${LINK_MEGA}"
 
