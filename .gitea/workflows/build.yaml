@@ -344,14 +344,14 @@ jobs:
           echo "cd /public" > sftp_commands.txt
           echo "ls" >> sftp_commands.txt
 
-          # Executing sftp command and filtering output
+          # Fetch a remote list of files
           FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
 
           echo "Files listed:"
           echo "$FILE_LIST"
 
           # Filtering and processing the file list
-          echo "$FILE_LIST" | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z' | awk '{print $NF}' | while read filename; do
+          echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read filename; do
               echo "Processing file: $filename"
               # Extract date from filename
               if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
@@ -363,8 +363,7 @@ jobs:
 
                 if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
                   echo "Deleting old file: $filename"
-                  # Append delete command to sftp batch file
-                  echo "rm \"$filename\"" >> delete_commands.txt
+                  echo "rm \"/public/$filename\"" >> delete_commands.txt
                 fi
               fi
           done
