@@ -362,7 +362,7 @@ jobs:
                 limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
 
                 if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                  echo "Deleting old file: $filename"
+                  echo "Marked for deletion: $filename"
                   echo "rm \"/public/$filename\"" >> delete_commands.txt
                 fi
               fi
@@ -370,7 +370,7 @@ jobs:
 
           # Check if there are files to delete and execute
           if [ -s delete_commands.txt ]; then
-            echo "Deleting files..."
+            echo "Running deletion task..."
             sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
           else
             echo "No old files to delete."
