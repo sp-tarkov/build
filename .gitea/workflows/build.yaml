@@ -264,7 +264,7 @@ jobs:
     container:
       image: refringe/spt-build-node:1.0.3
     outputs:
-      build_name: ${{ steps.extract-client-version.outputs.build_name }}
+      build_name: ${{ steps.generate-filename.outputs.build_name }}
     steps:
       - name: Clean Directory
         run: |
