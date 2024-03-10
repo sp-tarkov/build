@@ -126,10 +126,10 @@ jobs:
         tree -C /workspace/refringe/Build/server/project/build
       shell: bash
 
-    - name: Archive Build
+    - name: Artifact Server
       uses: actions/upload-artifact@v3
       with:
-        name: server-build
+        name: server-artifact
         path: /workspace/refringe/Build/server/project/build/
         compression-level: 0
         retention-days: 1
@@ -219,10 +219,10 @@ jobs:
         tree /workspace/refringe/Build/modules/project/Build
       shell: bash
 
-    - name: Archive Build
+    - name: Artifact Modules
       uses: actions/upload-artifact@v3
       with:
-        name: modules-build
+        name: modules-artifact
         path: /workspace/refringe/Build/modules/project/Build
         compression-level: 0
         retention-days: 1
@@ -249,10 +249,10 @@ jobs:
         tree /workspace/refringe/Build/launcher/project/Build
       shell: bash
 
-    - name: Archive Build
+    - name: Artifact Launcher
       uses: actions/upload-artifact@v3
       with:
-        name: launcher-build
+        name: launcher-artifact
         path: /workspace/refringe/Build/launcher/project/Build
         compression-level: 0
         retention-days: 1
@@ -271,22 +271,22 @@ jobs:
           rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
           mkdir -p /workspace/refringe/Build/release
 
-      - name: Download Server Build Artifact
+      - name: Download Server Artifact
         uses: actions/download-artifact@v3
         with:
-          name: server-build
+          name: server-artifact
           path: /workspace/refringe/Build/release/
 
-      - name: Download Modules Build Artifact
+      - name: Download Modules Artifact
         uses: actions/download-artifact@v3
         with:
-          name: modules-build
+          name: modules-artifact
           path: /workspace/refringe/Build/release/
 
-      - name: Download Launcher Build Artifact
+      - name: Download Launcher Artifact
         uses: actions/download-artifact@v3
         with:
-          name: launcher-build
+          name: launcher-artifact
           path: /workspace/refringe/Build/release/
 
       - name: Clone Build Project
@@ -330,12 +330,27 @@ jobs:
           echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
         shell: bash
 
+      - name: Artifact Release
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifact
+          path: /workspace/refringe/Build/${{ steps.generate-filename.outputs.build_name }}
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+
   publish-release:
     needs: [assemble-release]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.3
     steps:
+      - name: Download Release Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-artifact
+          path: /workspace/refringe/Build/
+
       - name: Upload Release to HTTP Source
         run: |
           cd /workspace/refringe/Build/
