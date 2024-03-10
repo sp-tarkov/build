@@ -450,90 +450,15 @@ jobs:
 
       - name: Create Torrent File
         run: |
-          cd /workspace/refringe/Build/
+          source /opt/venv/bin/activate
           BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
           BASE_NAME="${BUILD_NAME%.7z}"
-          torf --yes --output "${BASE_NAME}.torrent" \
-              --webseed "${{ steps.upload-https.outputs.link_https }}" \
-              --tracker "udp://tracker.dler.com:6969/announce" \
-              --tracker "http://t.acg.rip:6699/announce" \
-              --tracker "http://tracker.bt4g.com:2095/announce" \
-              --tracker "http://tracker.files.fm:6969/announce" \
-              --tracker "http://open.acgnxtracker.com:80/announce" \
-              --tracker "udp://tracker.torrent.eu.org:451/announce" \
-              --tracker "https://tracker1.520.jp:443/announce"  \
-              --tracker "https://tracker.tamersunion.org:443/announce" \
-              --tracker "https://trackers.mlsub.net:443/announce" \
-              --tracker "http://tracker.renfei.net:8080/announce" \
-              --tracker "udp://oh.fuuuuuck.com:6969/announce" \
-              --tracker "udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
-              --tracker "udp://odd-hd.fr:6969/announce" \
-              --tracker "https://tracker.yemekyedim.com:443/announce" \
-              --tracker "udp://tracker.jamesthebard.net:6969/announce" \
-              --tracker "udp://martin-gebhardt.eu:25/announce" \
-              --tracker "udp://tracker.picotorrent.one:6969/announce" \
-              --tracker "udp://open.stealth.si:80/announce" \
-              --tracker "udp://tracker2.dler.com:80/announce" \
-              --tracker "udp://movies.zsw.ca:6969/announce" \
-              --tracker "http://bt.okmp3.ru:2710/announce" \
-              --tracker "https://www.peckservers.com:9443/announce" \
-              --tracker "udp://opentracker.io:6969/announce" \
-              --tracker "udp://tracker.0x7c0.com:6969/announce" \
-              --tracker "http://bvarf.tracker.sh:2086/announce" \
-              --tracker "udp://tracker.therarbg.com:6969/announce" \
-              --tracker "udp://tracker.fnix.net:6969/announce" \
-              --tracker "udp://tracker.moeking.me:6969/announce" \
-              --tracker "udp://epider.me:6969/announce" \
-              --tracker "https://t1.hloli.org:443/announce" \
-              --tracker "udp://d40969.acod.regrucolo.ru:6969/announce" \
-              --tracker "http://retracker.seven-sky.net:80/announce" \
-              --tracker "udp://tracker.opentrackr.org:1337/announce" \
-              --tracker "udp://exodus.desync.com:6969/announce" \
-              --tracker "udp://moonburrow.club:6969/announce" \
-              --tracker "udp://tracker.tryhackx.org:6969/announce" \
-              --tracker "udp://ns1.monolithindustries.com:6969/announce" \
-              --tracker "udp://tracker.t-rb.org:6969/announce" \
-              --tracker "udp://explodie.org:6969/announce" \
-              --tracker "udp://p2p.publictracker.xyz:6969/announce" \
-              --tracker "udp://www.torrent.eu.org:451/announce" \
-              --tracker "udp://bt1.archive.org:6969/announce" \
-              --tracker "http://p2p.0g.cx:6969/announce" \
-              --tracker "https://tr.qfruiti.in:443/announce" \
-              --tracker "https://tr.qfruiti.com:443/announce" \
-              --tracker "udp://u4.trakx.crim.ist:1337/announce" \
-              --tracker "udp://new-line.net:6969/announce" \
-              --tracker "http://aboutbeautifulgallopinghorsesinthegreenpasture.online:80/announce" \
-              --tracker "https://shahidrazi.online:443/announce" \
-              --tracker "udp://tracker.therarbg.to:6969/announce" \
-              --tracker "udp://retracker.lanta.me:2710/announce" \
-              --tracker "https://tracker.lilithraws.org:443/announce" \
-              --tracker "udp://6ahddutb1ucc3cp.ru:6969/announce" \
-              --tracker "http://tracker.mywaifu.best:6969/announce" \
-              --tracker "udp://tracker.cubonegro.lol:6969/announce" \
-              --tracker "udp://tamas3.ynh.fr:6969/announce" \
-              --tracker "udp://6.pocketnet.app:6969/announce" \
-              --tracker "udp://tracker.torrust-demo.com:6969/announce" \
-              --tracker "udp://evan.im:6969/announce" \
-              --tracker "udp://1c.premierzal.ru:6969/announce" \
-              --tracker "udp://ttk2.nbaonlineservice.com:6969/announce" \
-              --tracker "https://track3r.site:443/announce" \
-              --tracker "udp://jutone.com:6969/announce" \
-              --tracker "udp://tracker.srv00.com:6969/announce" \
-              --tracker "https://tracker.loligirl.cn:443/announce" \
-              --tracker "udp://open.demonii.com:1337/announce" \
-              --tracker "udp://open.tracker.cl:1337/announce" \
-              --tracker "http://tracker1.itzmx.com:8080/announce" \
-              --tracker "https://tracker.gcrreen.xyz:443/announce" \
-              --tracker "udp://open.dstud.io:6969/announce" \
-              --tracker "https://tracker.cloudit.top:443/announce" \
-              --tracker "udp://tracker.filemail.com:6969/announce" \
-              --tracker "udp://tracker.qu.ax:6969/announce" \
-              --tracker "http://open.acgtracker.com:1096/announce" \
-              --tracker "udp://tk1.trackerservers.com:8080/announce" \
-              --tracker "udp://black-bird.ynh.fr:6969/announce" \
-              --comment "Offical ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
-              --creator "sp-tarkov.com"
-              --noprivate
-              --verbose
-              "${{ needs.assemble-release.outputs.build_name }}"
+          torf --yes --output "/workspace/refringe/Build/${BASE_NAME}.torrent" \
+            --webseed "${{ steps.upload-https.outputs.link_https }}" \
+            --tracker "udp://tracker.dler.com:6969/announce,http://t.acg.rip:6699/announce,http://tracker.bt4g.com:2095/announce,http://tracker.files.fm:6969/announce,http://open.acgnxtracker.com:80/announce,udp://tracker.torrent.eu.org:451/announce,https://tracker1.520.jp:443/announce,https://tracker.tamersunion.org:443/announce,https://trackers.mlsub.net:443/announce,http://tracker.renfei.net:8080/announce,udp://oh.fuuuuuck.com:6969/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce,udp://odd-hd.fr:6969/announce,https://tracker.yemekyedim.com:443/announce,udp://tracker.jamesthebard.net:6969/announce,udp://martin-gebhardt.eu:25/announce,udp://tracker.picotorrent.one:6969/announce,udp://open.stealth.si:80/announce,udp://tracker2.dler.com:80/announce,udp://movies.zsw.ca:6969/announce,http://bt.okmp3.ru:2710/announce,https://www.peckservers.com:9443/announce,udp://opentracker.io:6969/announce,udp://tracker.0x7c0.com:6969/announce,http://bvarf.tracker.sh:2086/announce,udp://tracker.therarbg.com:6969/announce,udp://tracker.fnix.net:6969/announce,udp://tracker.moeking.me:6969/announce,udp://epider.me:6969/announce,https://t1.hloli.org:443/announce,udp://d40969.acod.regrucolo.ru:6969/announce,http://retracker.seven-sky.net:80/announce,udp://tracker.opentrackr.org:1337/announce,udp://exodus.desync.com:6969/announce,udp://moonburrow.club:6969/announce,udp://tracker.tryhackx.org:6969/announce,udp://ns1.monolithindustries.com:6969/announce,udp://tracker.t-rb.org:6969/announce,udp://explodie.org:6969/announce,udp://p2p.publictracker.xyz:6969/announce,udp://www.torrent.eu.org:451/announce,udp://bt1.archive.org:6969/announce,http://p2p.0g.cx:6969/announce,https://tr.qfruiti.in:443/announce,https://tr.qfruiti.com:443/announce,udp://u4.trakx.crim.ist:1337/announce,udp://new-line.net:6969/announce,http://aboutbeautifulgallopinghorsesinthegreenpasture.online:80/announce,https://shahidrazi.online:443/announce,udp://tracker.therarbg.to:6969/announce,udp://retracker.lanta.me:2710/announce,https://tracker.lilithraws.org:443/announce,udp://6ahddutb1ucc3cp.ru:6969/announce,http://tracker.mywaifu.best:6969/announce,udp://tracker.cubonegro.lol:6969/announce,udp://tamas3.ynh.fr:6969/announce,udp://6.pocketnet.app:6969/announce,udp://tracker.torrust-demo.com:6969/announce,udp://evan.im:6969/announce,udp://1c.premierzal.ru:6969/announce,udp://ttk2.nbaonlineservice.com:6969/announce,https://track3r.site:443/announce,udp://jutone.com:6969/announce,udp://tracker.srv00.com:6969/announce,https://tracker.loligirl.cn:443/announce,udp://open.demonii.com:1337/announce,udp://open.tracker.cl:1337/announce,http://tracker1.itzmx.com:8080/announce,https://tracker.gcrreen.xyz:443/announce,udp://open.dstud.io:6969/announce,https://tracker.cloudit.top:443/announce,udp://tracker.filemail.com:6969/announce,udp://tracker.qu.ax:6969/announce,http://open.acgtracker.com:1096/announce,udp://tk1.trackerservers.com:8080/announce,udp://black-bird.ynh.fr:6969/announce" \
+            --comment "Offical ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
+            --creator "sp-tarkov.com"
+            --noprivate
+            --verbose
+            "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}"
         shell: bash
