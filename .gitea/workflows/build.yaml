@@ -504,31 +504,16 @@ jobs:
           fi
 
           jq -n \
-            --arg EMBED_TITLE "$EMBED_TITLE" \
-            --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
-            --arg BUILD_NAME "$BUILD_NAME" \
-            --arg DOWNLOAD_LINK "$DOWNLOAD_LINK" \
-            --arg TORRENT_LINK "$TORRENT_LINK" \
-            --arg MAGNET_LINK "$MAGNET_LINK" \
-            --argjson EMBED_COLOR $EMBED_COLOR \
-            --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
-            --arg TIMESTAMP "$TIMESTAMP" \
+            --arg EMBED_TITLE "Test Title" \
+            --arg EMBED_DESCRIPTION "Test Description" \
             '{
-              "username": "BuildBot",
-              "avatar_url": "https://i.imgur.com/28JJJec.png",
-              "content": "✨ **New Build Available!** ✨ (THIS IS A TEST)",
-              "embeds": [
+              username: "BuildBot",
+              content: "✨ **New Build Available!** ✨",
+              embeds: [
                 {
-                  "title": $EMBED_TITLE,
-                  "description": ($EMBED_DESCRIPTION + "\\n\\n**Build Name:**\\n" + $BUILD_NAME + "\\n\\n🚀 **Primary Download Link:**\\n" + $DOWNLOAD_LINK + "\\n\\n🔗 **Torrent Link:**\\n" + $TORRENT_LINK + "\\n\\n🧲 **Torrent Magnet Link:**\\n" + $MAGNET_LINK + "\\n\\n**Mirrors:**\\n\\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you're free to download using any of the following HTTP mirrors.\\n\\n🚧 While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\\n\\n" + $DOWNLOAD_LINK),
-                  "url": $DOWNLOAD_LINK,
-                  "color": $EMBED_COLOR,
-                  "footer": {
-                    "text": $FOOTER_MESSAGE
-                  },
-                  "timestamp": $TIMESTAMP
+                  title: $EMBED_TITLE,
+                  description: $EMBED_DESCRIPTION
                 }
               ]
-            }' > payload_discord.json
-          cat payload_discord.json
+            }'
         shell: bash
