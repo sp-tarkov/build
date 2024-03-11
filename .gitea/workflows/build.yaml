@@ -481,7 +481,7 @@ jobs:
           BUILD_TYPE: ${{ needs.determine-build-type.outputs.build_type }}
           BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
           DOWNLOAD_LINK: ${{ steps.upload-https-7z.outputs.link_https }}
-          TORRENT_LINK: ${{ steps.upload-https-torrent.outputs.link_torrent }}"
+          TORRENT_LINK: ${{ steps.upload-https-torrent.outputs.link_torrent }}
           MAGNET_LINK: ${{ steps.create-torrent.outputs.magnet_link }}
         run: |
           cd /workspace/refringe/Build/
