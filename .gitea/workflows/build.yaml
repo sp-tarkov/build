@@ -484,6 +484,7 @@ jobs:
           TORRENT_LINK: ${{ steps.upload-https-torrent.outputs.link_torrent }}"
           MAGNET_LINK: ${{ steps.create-torrent.outputs.magnet_link }}
         run: |
+          cd /workspace/refringe/Build/
           FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
           TIMESTAMP=$(date --iso-8601=seconds)
@@ -519,7 +520,7 @@ jobs:
               "embeds": [
                 {
                   "title": $EMBED_TITLE,
-                  "description": $EMBED_DESCRIPTION,
+                  "description": ($EMBED_DESCRIPTION + "\\n\\n**Build Name:**\\n" + $BUILD_NAME + "\\n\\n🚀 **Primary Download Link:**\\n" + $DOWNLOAD_LINK + "\\n\\n🔗 **Torrent Link:**\\n" + $TORRENT_LINK + "\\n\\n🧲 **Torrent Magnet Link:**\\n" + $MAGNET_LINK + "\\n\\n**Mirrors:**\\n\\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you're free to download using any of the following HTTP mirrors.\\n\\n⚠️ While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\\n\\n" + $DOWNLOAD_LINK),
                   "url": $DOWNLOAD_LINK,
                   "color": $EMBED_COLOR,
                   "footer": {
@@ -528,5 +529,6 @@ jobs:
                   "timestamp": $TIMESTAMP
                 }
               ]
-            }'
+            }' > payload_discord.json
+          cat payload_discord.json
         shell: bash
