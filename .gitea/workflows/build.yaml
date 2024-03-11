@@ -504,16 +504,30 @@ jobs:
           fi
 
           jq -n \
-            --arg EMBED_TITLE "Test Title" \
-            --arg EMBED_DESCRIPTION "Test Description" \
+            --arg EMBED_TITLE "$EMBED_TITLE" \
+            --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
+            --arg BUILD_NAME "$BUILD_NAME" \
+            --arg DOWNLOAD_LINK "$DOWNLOAD_LINK" \
+            --arg TORRENT_LINK "$TORRENT_LINK" \
+            --arg MAGNET_LINK "$MAGNET_LINK" \
+            --argjson EMBED_COLOR $EMBED_COLOR \
+            --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
+            --arg TIMESTAMP "$TIMESTAMP" \
             '{
-              username: "BuildBot",
-              content: "✨ **New Build Available!** ✨",
-              embeds: [
+              "username": "BuildBot",
+              "avatar_url": "https://i.imgur.com/28JJJec.png",
+              "content": "✨ **New Build Available!** ✨ (THIS IS A TEST)",
+              "embeds": [
                 {
-                  title: $EMBED_TITLE,
-                  description: $EMBED_DESCRIPTION
+                  "title": $EMBED_TITLE,
+                  "url": $DOWNLOAD_LINK,
+                  "color": $EMBED_COLOR,
+                  "footer": {
+                    "text": $FOOTER_MESSAGE
+                  },
+                  "timestamp": $TIMESTAMP
                 }
               ]
-            }'
+            }' > payload_discord.json
+          cat payload_discord.json
         shell: bash
