@@ -264,6 +264,7 @@ jobs:
     container:
       image: refringe/spt-build-node:1.0.5
     outputs:
+      base_name: ${{ steps.generate-filename.outputs.base_name }}
       build_name: ${{ steps.generate-filename.outputs.build_name }}
     steps:
       - name: Clean Directory
@@ -313,14 +314,15 @@ jobs:
           # Make BUILD_TYPE uppercase
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
 
-          # Conditionally format the BUILD_NAME based on BUILD_TYPE
+          # Conditionally format the BASE_NAME based on BUILD_TYPE
           if [ "$BUILD_TYPE" = "release" ]; then
-            BUILD_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
+            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
           else
-            BUILD_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}.7z"
+            BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
           fi
 
-          echo "::set-output name=build_name::${BUILD_NAME}"
+          echo "::set-output name=base_name::${BASE_NAME}"
+          echo "::set-output name=build_name::${BASE_NAME}.7z"
         shell: bash
 
       - name: Artifact Release
@@ -363,8 +365,8 @@ jobs:
       - name: Create Torrent File
         id: torrent_create
         run: |
+          BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
           BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
-          BASE_NAME="${BUILD_NAME%.7z}"
           TORRENT_NAME="${BASE_NAME}.torrent"
           TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/refringe/Build/${TORRENT_NAME}" \
             --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
@@ -478,12 +480,12 @@ jobs:
       - name: Post Build Info to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          BUILD_TYPE: ${{ needs.determine-build-type.outputs.build_type }}
-          BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
+          BUILD_TYPE: ${{ needs.build-server.outputs.build_type }}
+          BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
           LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
           LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
           LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
-          LINK_MAGNET: ${{ steps.create-torrent.outputs.magnet_link }}
+          LINK_MAGNET: ${{ steps.torrent_create.outputs.link_magnet }}
         run: |
           cd /workspace/refringe/Build/
           FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
@@ -503,16 +505,12 @@ jobs:
             EMBED_TITLE="Release Build Now Available"
             EMBED_DESCRIPTION="A new stable release build is now ready for download. 7-Zip is *required* to extract the release."
           fi
-          EMBED_DESCRIPTION="${EMBED_DESCRIPTION}\\n\\n**Build Name:**\\n${BUILD_NAME}\\n\\n🚀 **Primary Download Link:**\\n${LINK_MEGA}\\n\\n🔗 **Torrent Link:**\\n${LINK_TORRENT}\\n\\n🧲 **Torrent Magnet Link:**\\n${LINK_MAGNET}\\n\\n**Mirrors:**\\n\\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you're free to download using any of the following HTTP mirrors.\\n\\n🚧 While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\\n\\n${LINK_HTTPS}"
+          EMBED_DESCRIPTION="${EMBED_DESCRIPTION}\\n\\n**Build Name:**\\n${BASE_NAME}\\n\\n🚀 **Primary Download Link:**\\n${LINK_MEGA}\\n\\n🔗 **Torrent Link:**\\n${LINK_TORRENT}\\n\\n🧲 **Torrent Magnet Link:**\\n${LINK_MAGNET}\\n\\n**Mirrors:**\\n\\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you're free to download using any of the following HTTP mirrors.\\n\\n🚧 While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\\n\\n${LINK_HTTPS}"
 
           jq -n \
             --arg EMBED_TITLE "$EMBED_TITLE" \
             --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
-            --arg BUILD_NAME "$BUILD_NAME" \
             --arg LINK_MEGA "$LINK_MEGA" \
-            --arg LINK_HTTPS "$LINK_HTTPS" \
-            --arg LINK_TORRENT "$LINK_TORRENT" \
-            --arg LINK_MAGNET "$LINK_MAGNET" \
             --argjson EMBED_COLOR $EMBED_COLOR \
             --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
             --arg TIMESTAMP "$TIMESTAMP" \
