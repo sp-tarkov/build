@@ -495,18 +495,18 @@ jobs:
           if [ "$BUILD_TYPE" == "bleeding" ]; then
             EMBED_COLOR=14423100
             EMBED_TITLE="A New BLEEDING Build Released"
-            EMBED_DESCRIPTION="A new bleeding build is now available for download. Mods are disabled for bleeding builds. 7-Zip is *required* to extract the release."
+            EMBED_DESCRIPTION=$'A new bleeding build is now available for download. Mods are disabled for bleeding builds. 7-Zip is *required* to extract the release.'
           elif [ "$BUILD_TYPE" == "debug" ]; then
             EMBED_COLOR=5789784
             EMBED_TITLE="New DEBUG Build Available"
-            EMBED_DESCRIPTION="A new debug build is now available for download. Mods are disabled for debug builds. 7-Zip is *required* to extract the release."
+            EMBED_DESCRIPTION=$'A new debug build is now available for download. Mods are disabled for debug builds. 7-Zip is *required* to extract the release.'
           else
             EMBED_COLOR=1374720
             EMBED_TITLE="Release Build Now Available"
-            EMBED_DESCRIPTION="A new stable release build is now ready for download. 7-Zip is *required* to extract the release."
+            EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
           fi
-          #EMBED_DESCRIPTION="${EMBED_DESCRIPTION}\\n\\n**Build Name:**\\n${BASE_NAME}\\n\\n🚀 **Primary Download Link:**\\n${LINK_MEGA}\\n\\n🔗 **Torrent Link:**\\n${LINK_TORRENT}\\n\\n🧲 **Torrent Magnet Link:**\\n${LINK_MAGNET}\\n\\n**Mirrors:**\\n\\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you're free to download using any of the following HTTP mirrors.\\n\\n🚧 While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\\n\\n${LINK_HTTPS}"
-          EMBED_DESCRIPTION=$'TESTING\nNEW\nLINES'
+          EMBED_DESCRIPTION+=$'\n\n**Build Name:**\n'"${BASE_NAME}"$'\n\n🚀 **Primary Download Link:**\n'"${LINK_MEGA}"$'\n\n🔗 **Torrent Link:**\n'"${LINK_TORRENT}"$'\n\n🧲 **Torrent Magnet Link:**\n'"${LINK_MAGNET}"$'\n\n**Mirrors:**\n\n🚧 In order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\n🚧 While the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n'"${LINK_HTTPS}"
+
           jq -n \
             --arg EMBED_TITLE "$EMBED_TITLE" \
             --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
