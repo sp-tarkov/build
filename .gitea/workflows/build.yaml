@@ -507,7 +507,7 @@ jobs:
             EMBED_TITLE="Release Build Now Available"
             EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
           fi
-          EMBED_DESCRIPTION+=$'\n\n**Build Name:**\n'"${BASE_NAME}"$'\n\n🚀 **Primary Download Link:**\n'"${LINK_MEGA}"$'\n\n🔗 **Torrent Link:**\n'"${LINK_TORRENT}"$'\n\n📦 **File Size:** '"${FILE_SIZE_MB}"$'\n🔒 **SHA-256 Hash:** '"${FILE_HASH}"$'\n\n**🌐 Mirrors:**\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n'"${LINK_HTTPS}"
+          EMBED_DESCRIPTION+=$'\n\n**Build Name:**\n'"${BASE_NAME}"$'\n\n**Primary Download Link:**  🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:**  🔗\n'"${LINK_TORRENT}"$'\n\n**File Size:**  📦\n'"${FILE_SIZE_MB}"$'\n\n**SHA-256 Hash:**  🔒\n'"${FILE_HASH}"$'\n\n**Mirrors:**  🌐\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n'"${LINK_HTTPS}"
 
           jq -n \
             --arg EMBED_TITLE "$EMBED_TITLE" \
