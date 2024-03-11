@@ -7,6 +7,7 @@ FROM node:20.10.0-bookworm
 #  - git-lfs (duh)
 #  - zstd (caching action dependancy)
 #  - tree (pretty print build directory structure)
+#  - jq (working with JSON)
 #  - p7zip-full (the goat)
 #  - sshpass (for automated SSH authentication)
 #  - lftp (for automated SFTP commands)
@@ -14,7 +15,7 @@ FROM node:20.10.0-bookworm
 #  - python3-pip (for installing python packages)
 #  - python3-venv (for creating python virtual environments)
 RUN apt-get update && \
-    apt-get install -y wget git git-lfs zstd tree p7zip-full sshpass python3 python3-pip python3-venv
+    apt-get install -y wget git git-lfs zstd tree jq p7zip-full sshpass python3 python3-pip python3-venv
 
 # Create a virtual environment for Python packages
 RUN python3 -m venv /opt/venv
