@@ -335,7 +335,7 @@ jobs:
           overwrite: true
 
   publish-release:
-    needs: [assemble-release, determine-build-type]
+    needs: [assemble-release, determine-build-type, build-server]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.5
