@@ -491,7 +491,7 @@ jobs:
           FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
           TIMESTAMP=$(date --iso-8601=seconds)
-
+          echo "BUILD_TYPE is: $BUILD_TYPE"
           if [ "$BUILD_TYPE" == "bleeding" ]; then
             EMBED_COLOR=14423100
             EMBED_TITLE="A New BLEEDING Build Released"
