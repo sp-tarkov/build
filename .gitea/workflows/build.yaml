@@ -16,6 +16,8 @@ jobs:
       branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
       branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
       target_tag: ${{ steps.determine-context.outputs.target_tag }}
+      client_version: ${{ steps.versions.outputs.client_version }}
+      spt_version: ${{ steps.versions.outputs.spt_version }}
     steps:
       - name: Determine Build Context
         id: determine-context
@@ -71,6 +73,37 @@ jobs:
           echo "Required branch/tag not found in one or more repositories, halting workflow."
           exit 1
 
+      - name: Extract Versions
+        id: versions
+        run: |
+          rm -rf /workspace/refringe/Build/server-core
+          git init /workspace/refringe/Build/server-core
+          cd /workspace/refringe/Build/server-core
+          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+          git config core.sparseCheckout true
+          echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
+
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            REF=${{ steps.determine-context.outputs.branch_server }}
+          else
+            REF=${{ steps.determine-context.outputs.target_tag }}
+          fi
+
+          # Fetch and checkout the specific reference (branch or tag)
+          git fetch --depth=1 origin "${REF}"
+          git checkout FETCH_HEAD
+          ls -la project/assets/configs
+
+          # Extract versions from core.json
+          cd project/assets/configs
+          SPT_VERSION=$(jq -r '.akiVersion' core.json)
+          FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+          CLIENT_VERSION=${FULL_VERSION##*.}
+
+          echo "::set-output name=client_version::${CLIENT_VERSION}"
+          echo "::set-output name=spt_version::${SPT_VERSION}"
+        shell: bash
+
   build-server:
     needs: [prepare]
     if: needs.prepare.outputs.proceed == 'true'
@@ -79,8 +112,6 @@ jobs:
       image: refringe/spt-build-node:1.0.5
     outputs:
       build_type: ${{ steps.build-type.outputs.build_type }}
-      client_version: ${{ steps.version.outputs.client_version }}
-      spt_version: ${{ steps.version.outputs.spt_version }}
     steps:
     - name: Clone
       run: |
@@ -141,17 +172,6 @@ jobs:
         echo "::set-output name=build_type::${BUILD_TYPE}"
       shell: bash
 
-    - name: Determine Versions
-      id: version
-      run: |
-        cd /workspace/refringe/Build/server/project/assets/configs
-        SPT_VERSION=$(jq -r '.akiVersion' core.json)
-        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
-        CLIENT_VERSION=${FULL_VERSION##*.}
-        echo "::set-output name=client_version::${CLIENT_VERSION}"
-        echo "::set-output name=spt_version::${SPT_VERSION}"
-      shell: bash
-
     - name: Install Dependencies
       run: |
         cd /workspace/refringe/Build/server/project
@@ -177,7 +197,7 @@ jobs:
         overwrite: true
 
   build-modules:
-    needs: [prepare, build-server]
+    needs: [prepare]
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
@@ -198,8 +218,8 @@ jobs:
     - name: Download Client Module Package
       run: |
         DIR_MANAGED="/workspace/refringe/Build/modules/project/Shared/Managed"
-        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.build-server.outputs.client_version }}.zip"
-        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.build-server.outputs.client_version }}.zip"
+        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.zip"
+        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.zip"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
         mkdir -p "$DIR_MANAGED"
         wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
@@ -216,14 +236,14 @@ jobs:
     - name: Decompress Client Module Package
       run: |
         cd /workspace/refringe/Build/modules/project/Shared/Managed
-        7z x ${{ needs.build-server.outputs.client_version }}.zip -aoa
+        7z x ${{ needs.prepare.outputs.client_version }}.zip -aoa
         echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
       run: |
         cd /workspace/refringe/Build/modules/project/Shared/Managed
-        rm -f ${{ needs.build-server.outputs.client_version }}.zip
+        rm -f ${{ needs.prepare.outputs.client_version }}.zip
         echo "Client module package deleted."
       shell: bash
 
@@ -245,7 +265,7 @@ jobs:
         overwrite: true
 
   build-launcher:
-    needs: [prepare, build-server]
+    needs: [prepare]
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
@@ -329,8 +349,8 @@ jobs:
         id: generate-filename
         run: |
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
-          SPT_VERSION=${{ needs.build-server.outputs.spt_version }}
-          CLIENT_VERSION=${{ needs.build-server.outputs.client_version }}
+          SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
+          CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
           DATE=$(date +%Y%m%d)
 
           # Make BUILD_TYPE uppercase
