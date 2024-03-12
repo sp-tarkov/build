@@ -1,6 +1,5 @@
 name: SPT Release Build
 on:
-  workflow_dispatch:
   schedule:
     - cron: '0 19 * * *' # 7pm UTC/3pm ET, every day
   push:
@@ -22,93 +21,93 @@ jobs:
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
     steps:
-      - name: Determine Build Context
-        id: determine-context
-        run: |
-          echo "Determining build context..."
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "::set-output name=is_nightly::true"
-            echo "::set-output name=branch_server::3.8.0"
-            echo "::set-output name=branch_modules::3.8.0"
-            echo "::set-output name=branch_launcher::3.8.0"
-          else
-            echo "::set-output name=is_nightly::false"
-            echo "::set-output name=target_tag::3.8.0-BE-20240308"
-          fi
-        shell: bash
+    - name: Determine Build Context
+      id: determine-context
+      run: |
+        echo "Determining build context..."
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          echo "::set-output name=is_nightly::true"
+          echo "::set-output name=branch_server::3.8.0"
+          echo "::set-output name=branch_modules::3.8.0"
+          echo "::set-output name=branch_launcher::3.8.0"
+        else
+          echo "::set-output name=is_nightly::false"
+          echo "::set-output name=target_tag::3.8.0-BE-20240308"
+        fi
+      shell: bash
 
-      - name: Check Existence
-        id: check-existence
-        run: |
-          PROCEED="true"
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            declare -A BRANCHES=(
-              [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
-              [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
-              [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
-            )
-            for REPO_NAME in "${!BRANCHES[@]}"; do
-              REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
-              BRANCH="${BRANCHES[$REPO_NAME]##*@}"
-              echo "Checking for branch $BRANCH in $REPO_NAME..."
-              if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
-                echo "Branch $BRANCH not found in $REPO_URL"
-                PROCEED="false"
-                break
-              fi
-            done
-          else
-            TAG="${{ steps.determine-context.outputs.target_tag }}"
-            REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
-            for REPO in "${REPOS[@]}"; do
-              echo "Checking for tag $TAG in $REPO..."
-              if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
-                echo "Tag $TAG not found in $REPO"
-                PROCEED="false"
-                break
-              fi
-            done
-          fi
-          echo "::set-output name=proceed::${PROCEED}"
-        shell: bash
+    - name: Check Existence
+      id: check-existence
+      run: |
+        PROCEED="true"
+        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+          declare -A BRANCHES=(
+            [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
+            [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
+            [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
+          )
+          for REPO_NAME in "${!BRANCHES[@]}"; do
+            REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
+            BRANCH="${BRANCHES[$REPO_NAME]##*@}"
+            echo "Checking for branch $BRANCH in $REPO_NAME..."
+            if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
+              echo "Branch $BRANCH not found in $REPO_URL"
+              PROCEED="false"
+              break
+            fi
+          done
+        else
+          TAG="${{ steps.determine-context.outputs.target_tag }}"
+          REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
+          for REPO in "${REPOS[@]}"; do
+            echo "Checking for tag $TAG in $REPO..."
+            if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
+              echo "Tag $TAG not found in $REPO"
+              PROCEED="false"
+              break
+            fi
+          done
+        fi
+        echo "::set-output name=proceed::${PROCEED}"
+      shell: bash
 
-      - name: Halt Workflow if Necessary
-        if: steps.check-existence.outputs.proceed == 'false'
-        run: |
-          echo "Required branch/tag not found in one or more repositories, halting workflow."
-          exit 1
-        shell: bash
+    - name: Halt Workflow if Necessary
+      if: steps.check-existence.outputs.proceed == 'false'
+      run: |
+        echo "Required branch/tag not found in one or more repositories, halting workflow."
+        exit 1
+      shell: bash
 
-      - name: Extract Versions
-        id: versions
-        run: |
-          rm -rf /workspace/refringe/Build/server-core
-          git init /workspace/refringe/Build/server-core
-          cd /workspace/refringe/Build/server-core
-          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
-          git config core.sparseCheckout true
-          echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
+    - name: Extract Versions
+      id: versions
+      run: |
+        rm -rf /workspace/refringe/Build/server-core
+        git init /workspace/refringe/Build/server-core
+        cd /workspace/refringe/Build/server-core
+        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+        git config core.sparseCheckout true
+        echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
 
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            REF=${{ steps.determine-context.outputs.branch_server }}
-          else
-            REF=${{ steps.determine-context.outputs.target_tag }}
-          fi
+        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+          REF=${{ steps.determine-context.outputs.branch_server }}
+        else
+          REF=${{ steps.determine-context.outputs.target_tag }}
+        fi
 
-          # Fetch and checkout the specific reference (branch or tag)
-          git fetch --depth=1 origin "${REF}"
-          git checkout FETCH_HEAD
-          ls -la project/assets/configs
+        # Fetch and checkout the specific reference (branch or tag)
+        git fetch --depth=1 origin "${REF}"
+        git checkout FETCH_HEAD
+        ls -la project/assets/configs
 
-          # Extract versions from core.json
-          cd project/assets/configs
-          SPT_VERSION=$(jq -r '.akiVersion' core.json)
-          FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
-          CLIENT_VERSION=${FULL_VERSION##*.}
+        # Extract versions from core.json
+        cd project/assets/configs
+        SPT_VERSION=$(jq -r '.akiVersion' core.json)
+        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        CLIENT_VERSION=${FULL_VERSION##*.}
 
-          echo "::set-output name=client_version::${CLIENT_VERSION}"
-          echo "::set-output name=spt_version::${SPT_VERSION}"
-        shell: bash
+        echo "::set-output name=client_version::${CLIENT_VERSION}"
+        echo "::set-output name=spt_version::${SPT_VERSION}"
+      shell: bash
 
   build-server:
     needs: [prepare]
@@ -321,73 +320,73 @@ jobs:
       base_name: ${{ steps.generate-filename.outputs.base_name }}
       build_name: ${{ steps.generate-filename.outputs.build_name }}
     steps:
-      - name: Clean Directory
-        run: |
-          rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
-          mkdir -p /workspace/refringe/Build/release
-        shell: bash
+    - name: Clean Directory
+      run: |
+        rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
+        mkdir -p /workspace/refringe/Build/release
+      shell: bash
 
-      - name: Download Server Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: server-artifact
-          path: /workspace/refringe/Build/release/
+    - name: Download Server Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: server-artifact
+        path: /workspace/refringe/Build/release/
 
-      - name: Download Modules Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: modules-artifact
-          path: /workspace/refringe/Build/release/
+    - name: Download Modules Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: modules-artifact
+        path: /workspace/refringe/Build/release/
 
-      - name: Download Launcher Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: launcher-artifact
-          path: /workspace/refringe/Build/release/
+    - name: Download Launcher Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: launcher-artifact
+        path: /workspace/refringe/Build/release/
 
-      - name: Clone Build Project
-        uses: actions/checkout@v3
-        with:
-          path: /workspace/refringe/Build/build
+    - name: Clone Build Project
+      uses: actions/checkout@v3
+      with:
+        path: /workspace/refringe/Build/build
 
-      - name: Merge Static Assets and Dynamic Files
-        run: cp -rvf /workspace/refringe/Build/build/static-assets/* /workspace/refringe/Build/release/
-        shell: bash
+    - name: Merge Static Assets and Dynamic Files
+      run: cp -rvf /workspace/refringe/Build/build/static-assets/* /workspace/refringe/Build/release/
+      shell: bash
 
-      - name: List Release Contents
-        run: tree /workspace/refringe/Build/release
-        shell: bash
+    - name: List Release Contents
+      run: tree /workspace/refringe/Build/release
+      shell: bash
 
-      - name: Generate Release Filename
-        id: generate-filename
-        run: |
-          BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
-          SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
-          CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
-          DATE=$(date +%Y%m%d)
+    - name: Generate Release Filename
+      id: generate-filename
+      run: |
+        BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
+        SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
+        CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
+        DATE=$(date +%Y%m%d)
 
-          # Make BUILD_TYPE uppercase
-          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+        # Make BUILD_TYPE uppercase
+        UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
 
-          # Conditionally format the BASE_NAME based on BUILD_TYPE
-          if [ "$BUILD_TYPE" = "release" ]; then
-            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
-          else
-            BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
-          fi
+        # Conditionally format the BASE_NAME based on BUILD_TYPE
+        if [ "$BUILD_TYPE" = "release" ]; then
+          BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+        else
+          BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+        fi
 
-          echo "::set-output name=base_name::${BASE_NAME}"
-          echo "::set-output name=build_name::${BASE_NAME}.7z"
-        shell: bash
+        echo "::set-output name=base_name::${BASE_NAME}"
+        echo "::set-output name=build_name::${BASE_NAME}.7z"
+      shell: bash
 
-      - name: Artifact Release
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-artifact
-          path: /workspace/refringe/Build/release
-          compression-level: 0
-          retention-days: 1
-          overwrite: true
+    - name: Artifact Release
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-artifact
+        path: /workspace/refringe/Build/release
+        compression-level: 0
+        retention-days: 1
+        overwrite: true
 
   publish-release:
     needs: [assemble-release, build-server]
@@ -395,206 +394,206 @@ jobs:
     container:
       image: refringe/spt-build-node:1.0.5
     steps:
-      - name: Download Release Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: release-artifact
-          path: /workspace/refringe/Build/release
+    - name: Download Release Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: release-artifact
+        path: /workspace/refringe/Build/release
 
-      - name: Compress Release
-        run: |
-          cd /workspace/refringe/Build/release
-          7z a -mx=9 -m0=lzma2 "../${{ needs.assemble-release.outputs.build_name }}" ./*
-          echo "Release compressed as ${{ needs.assemble-release.outputs.build_name }}."
-        shell: bash
+    - name: Compress Release
+      run: |
+        cd /workspace/refringe/Build/release
+        7z a -mx=9 -m0=lzma2 "../${{ needs.assemble-release.outputs.build_name }}" ./*
+        echo "Release compressed as ${{ needs.assemble-release.outputs.build_name }}."
+      shell: bash
 
-      - name: Upload Release to HTTPS Source
-        id: upload-https-7z
-        run: |
-          cd /workspace/refringe/Build/
-          echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
-          echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/${{ needs.assemble-release.outputs.build_name }}"
-        shell: bash
+    - name: Upload Release to HTTPS Source
+      id: upload-https-7z
+      run: |
+        cd /workspace/refringe/Build/
+        echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/${{ needs.assemble-release.outputs.build_name }}"
+      shell: bash
 
-      - name: Create Torrent File
-        id: torrent_create
-        run: |
-          BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
-          BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
-          TORRENT_NAME="${BASE_NAME}.torrent"
-          TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/refringe/Build/${TORRENT_NAME}" \
-            --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
-            --tracker "http://open.acgnxtracker.com:80/announce,https://tracker.tamersunion.org:443/announce,http://tracker.renfei.net:8080/announce,udp://tracker.torrent.eu.org:451/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
-            --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
-            --creator "sp-tarkov.com" \
-            --verbose \
-            "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}")
-          MAGNET_LINK=$(echo "${TORF_OUTPUT}" | grep -oP 'Magnet\t\K.*')
-          echo "::set-output name=link_magnet::${MAGNET_LINK}"
-          echo "::set-output name=torrent_name::${TORRENT_NAME}"
-        shell: bash
+    - name: Create Torrent File
+      id: torrent_create
+      run: |
+        BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
+        BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
+        TORRENT_NAME="${BASE_NAME}.torrent"
+        TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/refringe/Build/${TORRENT_NAME}" \
+          --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
+          --tracker "http://open.acgnxtracker.com:80/announce,https://tracker.tamersunion.org:443/announce,http://tracker.renfei.net:8080/announce,udp://tracker.torrent.eu.org:451/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
+          --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
+          --creator "sp-tarkov.com" \
+          --verbose \
+          "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}")
+        MAGNET_LINK=$(echo "${TORF_OUTPUT}" | grep -oP 'Magnet\t\K.*')
+        echo "::set-output name=link_magnet::${MAGNET_LINK}"
+        echo "::set-output name=torrent_name::${TORRENT_NAME}"
+      shell: bash
 
-      - name: Upload Torrent to HTTPS Source
-        id: upload-https-torrent
-        run: |
-          cd /workspace/refringe/Build/
-          echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
-          echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/${{ steps.torrent_create.outputs.torrent_name }}"
-        shell: bash
+    - name: Upload Torrent to HTTPS Source
+      id: upload-https-torrent
+      run: |
+        cd /workspace/refringe/Build/
+        echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
+        echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/${{ steps.torrent_create.outputs.torrent_name }}"
+      shell: bash
 
-      - name: Clean Old HTTPS Source Releases
-        run: |
-          cd /workspace/refringe/Build/
-          echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
+    - name: Clean Old HTTPS Source Releases
+      run: |
+        cd /workspace/refringe/Build/
+        echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
 
-          # Creating a script for sftp to execute
-          echo "cd /public" > sftp_commands.txt
-          echo "ls" >> sftp_commands.txt
+        # Creating a script for sftp to execute
+        echo "cd /public" > sftp_commands.txt
+        echo "ls" >> sftp_commands.txt
 
-          # Fetch a remote list of files
-          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+        # Fetch a remote list of files
+        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
 
-          echo "Files listed:"
-          echo "$FILE_LIST"
+        echo "Files listed:"
+        echo "$FILE_LIST"
 
-          # Filtering and processing the file list
-          echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(DEBUG|BLEEDING).*\.(7z|torrent)$' | while read filename; do
-              echo "Processing file: $filename"
-              # Extract date from filename
-              if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
-                file_date="${BASH_REMATCH[1]}"
-                file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
-
-                current_date=$(date +%s)
-                limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
-
-                if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                  echo "Marked for deletion: $filename"
-                  echo "rm \"/public/$filename\"" >> delete_commands.txt
-                fi
-              fi
-          done
-
-          # Check if there are files to delete and execute
-          if [ -s delete_commands.txt ]; then
-            echo "Running deletion task..."
-            sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
-          else
-            echo "No old files to delete."
-          fi
-        shell: bash
-
-      - name: Upload Release to Mega
-        id: upload-mega
-        run: |
-          mega-https on
-          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-
-          mega-put -c "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
-
-          # Generate link and save it.
-          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ needs.assemble-release.outputs.build_name }}" -f)
-          LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
-          echo "::set-output name=link_mega::${LINK_MEGA}"
-
-          mega-logout
-        shell: bash
-
-      - name: Clean Old Mega Releases
-        run: |
-          mega-https on
-          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-
-          # List files and filter out old DEBUG or BLEEDING files
-          mega-ls /spt-release | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
+        # Filtering and processing the file list
+        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(DEBUG|BLEEDING).*\.(7z|torrent)$' | while read filename; do
+            echo "Processing file: $filename"
             # Extract date from filename
-            if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+            if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
               file_date="${BASH_REMATCH[1]}"
               file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
 
-              # Get current date minus 30 days
               current_date=$(date +%s)
               limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
 
-              # Compare dates and delete old files
               if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                echo "Deleting old file: $filename"
-                mega-rm "/spt-release/$filename"
+                echo "Marked for deletion: $filename"
+                echo "rm \"/public/$filename\"" >> delete_commands.txt
               fi
             fi
-          done
+        done
 
-          # Remove old file versions to save space.
-          mega-deleteversions -f /spt-release/*
+        # Check if there are files to delete and execute
+        if [ -s delete_commands.txt ]; then
+          echo "Running deletion task..."
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
+        else
+          echo "No old files to delete."
+        fi
+      shell: bash
 
-          mega-logout
-        shell: bash
+    - name: Upload Release to Mega
+      id: upload-mega
+      run: |
+        mega-https on
+        mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-      - name: Post Build Info to Discord
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          BUILD_TYPE: ${{ needs.build-server.outputs.build_type }}
-          BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
-          BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
-          LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
-          LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
-          LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
-        run: |
-          cd /workspace/refringe/Build/
-          FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
-          FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
-          TIMESTAMP=$(date --iso-8601=seconds)
-          FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
-          FILE_HASH=$(sha256sum "$BUILD_NAME" | awk '{print $1}')
+        mega-put -c "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
 
-          if [ "$BUILD_TYPE" == "bleeding" ]; then
-            EMBED_COLOR=14423100
-            EMBED_TITLE="A New BLEEDING Build Released"
-            EMBED_DESCRIPTION=$'A new bleeding build is now available for download. Mods are disabled for bleeding builds. 7-Zip is *required* to extract the release.'
-          elif [ "$BUILD_TYPE" == "debug" ]; then
-            EMBED_COLOR=5789784
-            EMBED_TITLE="New DEBUG Build Available"
-            EMBED_DESCRIPTION=$'A new debug build is now available for download. Mods are disabled for debug builds. 7-Zip is *required* to extract the release.'
-          else
-            EMBED_COLOR=1374720
-            EMBED_TITLE="Release Build Now Available"
-            EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
+        # Generate link and save it.
+        EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ needs.assemble-release.outputs.build_name }}" -f)
+        LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
+        echo "::set-output name=link_mega::${LINK_MEGA}"
+
+        mega-logout
+      shell: bash
+
+    - name: Clean Old Mega Releases
+      run: |
+        mega-https on
+        mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
+
+        # List files and filter out old DEBUG or BLEEDING files
+        mega-ls /spt-release | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
+          # Extract date from filename
+          if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+            file_date="${BASH_REMATCH[1]}"
+            file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+
+            # Get current date minus 30 days
+            current_date=$(date +%s)
+            limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
+
+            # Compare dates and delete old files
+            if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
+              echo "Deleting old file: $filename"
+              mega-rm "/spt-release/$filename"
+            fi
           fi
-          EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
+        done
 
-          jq -n \
-            --arg EMBED_TITLE "$EMBED_TITLE" \
-            --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
-            --arg LINK_MEGA "$LINK_MEGA" \
-            --argjson EMBED_COLOR $EMBED_COLOR \
-            --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
-            --arg TIMESTAMP "$TIMESTAMP" \
-            '{
-              "username": "BuildBot",
-              "avatar_url": "https://i.imgur.com/28JJJec.png",
-              "content": "✨ **New Build Available!** ✨",
-              "embeds": [
-                {
-                  "title": $EMBED_TITLE,
-                  "description": $EMBED_DESCRIPTION,
-                  "url": $LINK_MEGA,
-                  "color": $EMBED_COLOR,
-                  "footer": {
-                    "text": $FOOTER_MESSAGE
-                  },
-                  "timestamp": $TIMESTAMP
-                }
-              ]
-            }' > payload_discord.json
+        # Remove old file versions to save space.
+        mega-deleteversions -f /spt-release/*
 
-          echo "Payload Generated:"
-          cat payload_discord.json
+        mega-logout
+      shell: bash
 
-          echo "Sending Payload..."
-          curl -H "Content-Type: application/json" \
-            -X POST \
-            --data-binary @payload_discord.json \
-            $DISCORD_WEBHOOK_URL
-        shell: bash
+    - name: Post Build Info to Discord
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        BUILD_TYPE: ${{ needs.build-server.outputs.build_type }}
+        BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
+        BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
+        LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
+        LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
+        LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
+      run: |
+        cd /workspace/refringe/Build/
+        FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
+        FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
+        TIMESTAMP=$(date --iso-8601=seconds)
+        FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
+        FILE_HASH=$(sha256sum "$BUILD_NAME" | awk '{print $1}')
+
+        if [ "$BUILD_TYPE" == "bleeding" ]; then
+          EMBED_COLOR=14423100
+          EMBED_TITLE="A New BLEEDING Build Released"
+          EMBED_DESCRIPTION=$'A new bleeding build is now available for download. Mods are disabled for bleeding builds. 7-Zip is *required* to extract the release.'
+        elif [ "$BUILD_TYPE" == "debug" ]; then
+          EMBED_COLOR=5789784
+          EMBED_TITLE="New DEBUG Build Available"
+          EMBED_DESCRIPTION=$'A new debug build is now available for download. Mods are disabled for debug builds. 7-Zip is *required* to extract the release.'
+        else
+          EMBED_COLOR=1374720
+          EMBED_TITLE="Release Build Now Available"
+          EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
+        fi
+        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
+
+        jq -n \
+          --arg EMBED_TITLE "$EMBED_TITLE" \
+          --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
+          --arg LINK_MEGA "$LINK_MEGA" \
+          --argjson EMBED_COLOR $EMBED_COLOR \
+          --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
+          --arg TIMESTAMP "$TIMESTAMP" \
+          '{
+            "username": "BuildBot",
+            "avatar_url": "https://i.imgur.com/28JJJec.png",
+            "content": "✨ **New Build Available!** ✨",
+            "embeds": [
+              {
+                "title": $EMBED_TITLE,
+                "description": $EMBED_DESCRIPTION,
+                "url": $LINK_MEGA,
+                "color": $EMBED_COLOR,
+                "footer": {
+                  "text": $FOOTER_MESSAGE
+                },
+                "timestamp": $TIMESTAMP
+              }
+            ]
+          }' > payload_discord.json
+
+        echo "Payload Generated:"
+        cat payload_discord.json
+
+        echo "Sending Payload..."
+        curl -H "Content-Type: application/json" \
+          -X POST \
+          --data-binary @payload_discord.json \
+          $DISCORD_WEBHOOK_URL
+      shell: bash
