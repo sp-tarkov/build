@@ -1,1 +1,36 @@
-# TODO: Gitea Version
+name: Trigger Main Build Pipeline
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  trigger-main-build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Git Config
+      run: |
+        git config --global user.email "me@refringe.com"
+        git config --global user.name "TriggerBot"
+
+    - name: Clone Build Repository
+      run: git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_PASSWORD }}@git.refringe.com/refringe/Build.git ../main-build-repo
+
+    - name: Trigger Branch
+      working-directory: ../main-build-repo
+      run: git checkout -b trigger || git checkout trigger
+
+    - name: Create trigger_tag File
+      working-directory: ../main-build-repo
+      run: |
+        echo "${GITHUB_REF_NAME}" > trigger_tag
+        git add trigger_tag
+        git commit -m "Update trigger_tag with ${GITHUB_REF_NAME}"
+
+    - name: Force Push
+      working-directory: ../main-build-repo
+      run: git push --force origin trigger

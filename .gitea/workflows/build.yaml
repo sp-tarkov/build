@@ -1,11 +1,11 @@
 name: SPT Release Build
+
 on:
   schedule:
     - cron: '* 19 * * *' # Every day at 7pm UTC (3pm ET)
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ trigger ]
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
