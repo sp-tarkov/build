@@ -9,6 +9,8 @@ on:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-node:1.0.5
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
