@@ -34,6 +34,7 @@ jobs:
             echo "::set-output name=is_nightly::false"
             echo "::set-output name=target_tag::3.8.0-BE-20240308"
           fi
+        shell: bash
 
       - name: Check Existence
         id: check-existence
@@ -68,12 +69,14 @@ jobs:
             done
           fi
           echo "::set-output name=proceed::${PROCEED}"
+        shell: bash
 
       - name: Halt Workflow if Necessary
         if: steps.check-existence.outputs.proceed == 'false'
         run: |
           echo "Required branch/tag not found in one or more repositories, halting workflow."
           exit 1
+        shell: bash
 
       - name: Extract Versions
         id: versions
@@ -126,11 +129,13 @@ jobs:
           echo "Cloning tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/refringe/Build/server
         fi
+      shell: bash
 
     - name: Pull LFS Files
       run: |
         cd /workspace/refringe/Build/server
         git lfs pull && git lfs ls-files
+      shell: bash
 
     - name: Runner Debug Information
       run: |
@@ -142,6 +147,7 @@ jobs:
         echo "Latest Commit Hash: $(git rev-parse HEAD)"
         echo "Associated Tags: $(git tag --contains HEAD)"
         echo "Last Commit Message:" && git log -1 --pretty=%B
+      shell: bash
 
     - name: Determine Build Type
       id: build-type
@@ -178,6 +184,7 @@ jobs:
       run: |
         cd /workspace/refringe/Build/server/project
         npm install
+      shell: bash
 
     - name: Build Server
       run: |
@@ -216,6 +223,7 @@ jobs:
           echo "Cloning modules from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/refringe/Build/modules
         fi
+      shell: bash
 
     - name: Download Client Module Package
       run: |
@@ -284,6 +292,7 @@ jobs:
           echo "Cloning launcher from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/refringe/Build/launcher
         fi
+      shell: bash
 
     - name: Build Launcher
       run: |
@@ -315,6 +324,7 @@ jobs:
         run: |
           rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
           mkdir -p /workspace/refringe/Build/release
+        shell: bash
 
       - name: Download Server Artifact
         uses: actions/download-artifact@v3
