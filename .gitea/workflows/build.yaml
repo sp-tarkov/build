@@ -120,6 +120,7 @@ jobs:
     steps:
     - name: Clone
       run: |
+        rm -rf /workspace/refringe/Build/server
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_server }}
           echo "Cloning branch $BRANCH"
@@ -183,6 +184,8 @@ jobs:
     - name: Install Dependencies
       run: |
         cd /workspace/refringe/Build/server/project
+        rm -rf package-lock.json node_modules
+        npm cache clean --force
         npm install
       shell: bash
 
