@@ -193,6 +193,7 @@ jobs:
           TAG=${{ needs.prepare.outputs.target_tag }}
           echo "Cloning modules from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/refringe/Build/modules
+        fi
 
     - name: Download Client Module Package
       run: |
@@ -260,6 +261,7 @@ jobs:
           TAG=${{ needs.prepare.outputs.target_tag }}
           echo "Cloning launcher from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/refringe/Build/launcher
+        fi
 
     - name: Build Launcher
       run: |
