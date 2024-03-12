@@ -1,57 +1,98 @@
 name: SPT Release Build
-
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
+  schedule:
+    - cron: '0 19 * * *' # 7pm UTC/3pm ET, every day
 jobs:
-  check-tag-exists:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      proceed: ${{ steps.check.outputs.proceed }}
-      target_tag: ${{ steps.check.outputs.target_tag }}
+      proceed: ${{ steps.check-existence.outputs.proceed }}
+      is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
+      branch_server: ${{ steps.determine-context.outputs.branch_server }}
+      branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
+      branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
+      target_tag: ${{ steps.determine-context.outputs.target_tag }}
     steps:
-      - name: Check Tag Exists in All Repositories
-        id: check
+      - name: Determine Build Context
+        id: determine-context
         run: |
-          # The tag needs to be saved as a variable so that it can be used throughout the build process.
-          TAG="3.8.0-BE-20240308"
-          REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
-          PROCEED="true"
-          for REPO in ${REPOS[@]}; do
-            echo "Checking for tag $TAG in $REPO..."
-            if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
-              echo "Tag $TAG not found in $REPO"
-              PROCEED="false"
-              break
-            fi
-          done
-          echo "::set-output name=proceed::${PROCEED}"
-          echo "::set-output name=target_tag::${TAG}"
-        shell: bash
+          echo "Determining build context..."
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "::set-output name=is_nightly::true"
+            echo "::set-output name=branch_server::3.8.0"
+            echo "::set-output name=branch_modules::3.8.0"
+            echo "::set-output name=branch_launcher::3.8.0"
+          else
+            echo "::set-output name=is_nightly::false"
+            echo "::set-output name=target_tag::3.8.0-BE-20240308"
+          fi
 
-      - name: Tag Not Found
-        if: steps.check.outputs.proceed == 'false'
+      - name: Check Existence
+        id: check-existence
         run: |
-          echo "Tag not found in one or more repositories, halting workflow."
+          PROCEED="true"
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            declare -A BRANCHES=(
+              [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
+              [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
+              [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
+            )
+            for REPO_NAME in "${!BRANCHES[@]}"; do
+              REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
+              BRANCH="${BRANCHES[$REPO_NAME]##*@}"
+              echo "Checking for branch $BRANCH in $REPO_NAME..."
+              if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
+                echo "Branch $BRANCH not found in $REPO_URL"
+                PROCEED="false"
+                break
+              fi
+            done
+          else
+            TAG="${{ steps.determine-context.outputs.target_tag }}"
+            REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
+            for REPO in "${REPOS[@]}"; do
+              echo "Checking for tag $TAG in $REPO..."
+              if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
+                echo "Tag $TAG not found in $REPO"
+                PROCEED="false"
+                break
+              fi
+            done
+          fi
+          echo "::set-output name=proceed::${PROCEED}"
+
+      - name: Halt Workflow if Necessary
+        if: steps.check-existence.outputs.proceed == 'false'
+        run: |
+          echo "Required branch/tag not found in one or more repositories, halting workflow."
           exit 1
 
   build-server:
-    needs: check-tag-exists
-    if: needs.check-tag-exists.outputs.proceed == 'true'
+    needs: [prepare]
+    if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.5
     outputs:
       build_type: ${{ steps.build-type.outputs.build_type }}
+      client_version: ${{ steps.version.outputs.client_version }}
+      spt_version: ${{ steps.version.outputs.spt_version }}
     steps:
     - name: Clone
       run: |
-        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
-        rm -rf /workspace/refringe/Build/server
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/server
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+          BRANCH=${{ needs.prepare.outputs.branch_server }}
+          echo "Cloning branch $BRANCH"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/server
+        else
+          TAG=${{ needs.prepare.outputs.target_tag }}
+          echo "Cloning tag $TAG"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/refringe/Build/server
+        fi
 
     - name: Pull LFS Files
       run: |
@@ -69,54 +110,54 @@ jobs:
         echo "Associated Tags: $(git tag --contains HEAD)"
         echo "Last Commit Message:" && git log -1 --pretty=%B
 
-    - name: Cache Keys
-      id: cache-keys
-      run: |
-        cd /workspace/refringe/Build/server
-        echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
-        TAGS=$(git tag --contains HEAD || echo "no-tag")
-        if [ -z "$TAGS" ]; then
-          TAGS="no-tag"
-        fi
-        TAGS="${TAGS//$'\n'/-}"  # Replace newline characters with dashes
-        TAGS="${TAGS//,/-}"      # Replace commas with dashes
-        echo "::set-output name=tags::${TAGS}"
-        echo "Commit Hash: ${{ steps.cache-keys.outputs.commit_hash }}"
-        echo "Tags: ${{ steps.cache-keys.outputs.tags }}"
-      shell: bash
-
     - name: Determine Build Type
       id: build-type
       run: |
-        TAGS="${{ steps.cache-keys.outputs.tags }}"
-        BUILD_TYPE="debug"  # Default
-        if [[ "$TAGS" =~ -BE ]]; then
+        # Check if this is a nightly build
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+          # Nightly builds are always considered "bleeding"
           BUILD_TYPE="bleeding"
-        elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
-          BUILD_TYPE="release"
+        else
+          cd /workspace/refringe/Build/server
+
+          # Prepare tags for check
+          TAGS=$(git tag --contains HEAD || echo "no-tag")
+          if [ -z "$TAGS" ]; then
+            TAGS="no-tag"
+          fi
+          TAGS="${TAGS//$'\n'/-}"  # Replace newline characters with dashes
+          TAGS="${TAGS//,/-}"      # Replace commas with dashes
+
+          # Debug build by default
+          # Bleeding builds have "-BE" in the tag
+          # Release tags follow basic semantic versioning
+          BUILD_TYPE="debug"
+          if [[ "$TAGS" =~ -BE ]]; then
+            BUILD_TYPE="bleeding"
+          elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
+            BUILD_TYPE="release"
+          fi
         fi
         echo "::set-output name=build_type::${BUILD_TYPE}"
       shell: bash
 
-    - name: Build Cache
-      id: build-cache
-      uses: actions/cache@v4
-      with:
-        path: /workspace/refringe/Build/server/project/build
-        key: build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-${{ steps.build-type.outputs.build_type }}
-        restore-keys: |
-          build-${{ steps.cache-keys.outputs.commit_hash }}-${{ steps.cache-keys.outputs.tags }}-
-          build-${{ steps.cache-keys.outputs.commit_hash }}-
-          build-
+    - name: Determine Versions
+      id: version
+      run: |
+        cd /workspace/refringe/Build/server/project/assets/configs
+        SPT_VERSION=$(jq -r '.akiVersion' core.json)
+        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+        CLIENT_VERSION=${FULL_VERSION##*.}
+        echo "::set-output name=client_version::${CLIENT_VERSION}"
+        echo "::set-output name=spt_version::${SPT_VERSION}"
+      shell: bash
 
     - name: Install Dependencies
-      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         npm install
 
     - name: Build Server
-      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         cd /workspace/refringe/Build/server/project
         BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
@@ -136,52 +177,28 @@ jobs:
         overwrite: true
 
   build-modules:
-    needs: check-tag-exists
-    if: needs.check-tag-exists.outputs.proceed == 'true'
+    needs: [prepare, build-server]
+    if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-dotnet:1.0.0
-    outputs:
-      spt_version: ${{ steps.extract-client-version.outputs.spt_version }}
-      client_version: ${{ steps.extract-client-version.outputs.client_version }}
     steps:
     - name: Clone
       run: |
-        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
-        rm -rf /workspace/refringe/Build/modules
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/modules
-
-    - name: Fetch Server Core Config
-      run: |
-        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
-        rm -rf /workspace/refringe/Build/server-core
-        git init /workspace/refringe/Build/server-core
-        cd /workspace/refringe/Build/server-core
-        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
-        git config core.sparseCheckout true
-        echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
-        git fetch --depth=1 origin "${TARGET_TAG}"
-        git checkout FETCH_HEAD
-        ls -la project/assets/configs
-      shell: bash
-
-    - name: Extract Client Version
-      id: extract-client-version
-      run: |
-        cd /workspace/refringe/Build/server-core/project/assets/configs
-        SPT_VERSION=$(jq -r '.akiVersion' core.json)
-        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
-        CLIENT_VERSION=${FULL_VERSION##*.}
-        echo "Extracted Client Version: $CLIENT_VERSION"
-        echo "::set-output name=client_version::${CLIENT_VERSION}"
-        echo "::set-output name=spt_version::${SPT_VERSION}"
-      shell: bash
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+          BRANCH=${{ needs.prepare.outputs.branch_modules }}
+          echo "Cloning modules from branch $BRANCH"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/modules
+        else
+          TAG=${{ needs.prepare.outputs.target_tag }}
+          echo "Cloning modules from tag $TAG"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/refringe/Build/modules
 
     - name: Download Client Module Package
       run: |
         DIR_MANAGED="/workspace/refringe/Build/modules/project/Shared/Managed"
-        DOWNLOAD_PATH="$DIR_MANAGED/${{ steps.extract-client-version.outputs.client_version }}.zip"
-        DOWNLOAD_URL="$MODULE_DOMAIN/${{ steps.extract-client-version.outputs.client_version }}.zip"
+        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.build-server.outputs.client_version }}.zip"
+        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.build-server.outputs.client_version }}.zip"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
         mkdir -p "$DIR_MANAGED"
         wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
@@ -194,20 +211,18 @@ jobs:
         fi
         echo "Download Successful: $DOWNLOAD_PATH"
       shell: bash
-      env:
-        MODULE_DOMAIN: ${{ secrets.MODULE_DOMAIN }}
 
     - name: Decompress Client Module Package
       run: |
         cd /workspace/refringe/Build/modules/project/Shared/Managed
-        7z x ${{ steps.extract-client-version.outputs.client_version }}.zip -aoa
+        7z x ${{ needs.build-server.outputs.client_version }}.zip -aoa
         echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
       run: |
         cd /workspace/refringe/Build/modules/project/Shared/Managed
-        rm -f ${{ steps.extract-client-version.outputs.client_version }}.zip
+        rm -f ${{ needs.build-server.outputs.client_version }}.zip
         echo "Client module package deleted."
       shell: bash
 
@@ -229,17 +244,22 @@ jobs:
         overwrite: true
 
   build-launcher:
-    needs: check-tag-exists
-    if: needs.check-tag-exists.outputs.proceed == 'true'
+    needs: [prepare, build-server]
+    if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
     - name: Clone
       run: |
-        TARGET_TAG=${{ needs.check-tag-exists.outputs.target_tag }}
-        rm -rf /workspace/refringe/Build/launcher
-        git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "${TARGET_TAG}" --depth 1 /workspace/refringe/Build/launcher
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+          BRANCH=${{ needs.prepare.outputs.branch_launcher }}
+          echo "Cloning launcher from branch $BRANCH"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/launcher
+        else
+          TAG=${{ needs.prepare.outputs.target_tag }}
+          echo "Cloning launcher from tag $TAG"
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/refringe/Build/launcher
 
     - name: Build Launcher
       run: |
@@ -259,7 +279,7 @@ jobs:
         overwrite: true
 
   assemble-release:
-    needs: [check-tag-exists, build-server, build-modules, build-launcher]
+    needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.5
@@ -307,8 +327,8 @@ jobs:
         id: generate-filename
         run: |
           BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
-          SPT_VERSION=${{ needs.build-modules.outputs.spt_version }}
-          CLIENT_VERSION=${{ needs.build-modules.outputs.client_version }}
+          SPT_VERSION=${{ needs.build-server.outputs.spt_version }}
+          CLIENT_VERSION=${{ needs.build-server.outputs.client_version }}
           DATE=$(date +%Y%m%d)
 
           # Make BUILD_TYPE uppercase
@@ -335,7 +355,7 @@ jobs:
           overwrite: true
 
   publish-release:
-    needs: [assemble-release, determine-build-type, build-server]
+    needs: [assemble-release, build-server]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.5
@@ -371,7 +391,7 @@ jobs:
           TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/refringe/Build/${TORRENT_NAME}" \
             --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
             --tracker "http://open.acgnxtracker.com:80/announce,https://tracker.tamersunion.org:443/announce,http://tracker.renfei.net:8080/announce,udp://tracker.torrent.eu.org:451/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
-            --comment "Offical ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
+            --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
             --creator "sp-tarkov.com" \
             --verbose \
             "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}")
@@ -482,10 +502,10 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           BUILD_TYPE: ${{ needs.build-server.outputs.build_type }}
           BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
+          BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
           LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
           LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
           LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
-          BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
         run: |
           cd /workspace/refringe/Build/
           FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
@@ -507,7 +527,7 @@ jobs:
             EMBED_TITLE="Release Build Now Available"
             EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
           fi
-          EMBED_DESCRIPTION+=$'\n\n**Build Information:**  📊\nName: *'"${BASE_NAME}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:**  🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:**  🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:**  🌐\n'"${LINK_HTTPS}"
+          EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
 
           jq -n \
             --arg EMBED_TITLE "$EMBED_TITLE" \
@@ -519,7 +539,7 @@ jobs:
             '{
               "username": "BuildBot",
               "avatar_url": "https://i.imgur.com/28JJJec.png",
-              "content": "✨ **New Build Available!** ✨ (THIS IS A TEST)",
+              "content": "✨ **New Build Available!** ✨",
               "embeds": [
                 {
                   "title": $EMBED_TITLE,
