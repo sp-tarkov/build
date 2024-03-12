@@ -1,7 +1,7 @@
 name: SPT Release Build
 on:
   schedule:
-    - cron: '0 19 * * *' # 7pm UTC/3pm ET, every day
+    - cron: '30 4 * * *' # 7pm UTC/3pm ET, every day
   push:
     branches: [ main ]
   pull_request:
