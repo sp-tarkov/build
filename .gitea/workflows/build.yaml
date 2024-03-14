@@ -619,23 +619,23 @@ jobs:
         MODS=""
 
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            EMBED_COLOR=0xfff700
+            EMBED_COLOR=16705372
             EMBED_TITLE="Fresh Nightly Build"
             EMBED_DESCRIPTION=$'A new nightly build is now available. These are untested and considered unstable. Absolutely no support is provided—If you ask for help you **will be banned from the #dev-builds channel without notice**. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
         else
           if [ "$BUILD_TYPE" == "bleeding" ]; then
-            EMBED_COLOR=0xff0000
+            EMBED_COLOR=15548997
             EMBED_TITLE="New Bleeding Build"
             EMBED_DESCRIPTION=$'A new bleeding edge build is now available. These are for testing issues and not for general gameplay. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
           elif [ "$BUILD_TYPE" == "debug" ]; then
-            EMBED_COLOR=0x000055
+            EMBED_COLOR=2123412
             EMBED_TITLE="New Debug Build"
             EMBED_DESCRIPTION=$'A new debug build is now available. These have extra-verbose logging enabled. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_DEBUG"
           else
-            EMBED_COLOR=0x33ff00
+            EMBED_COLOR=5763719
             EMBED_TITLE="New Stable Build"
             EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_RELEASE"
