@@ -621,13 +621,13 @@ jobs:
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             EMBED_COLOR=16705372
             EMBED_TITLE="Fresh Nightly Build"
-            EMBED_DESCRIPTION=$'A new nightly build is now available. These are untested and considered unstable. Absolutely no support is provided—If you ask for help you **will be banned from the #dev-builds channel without notice**. 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION=$'A new nightly build is now available. These are untested and considered unstable. Absolutely no support is provided—If you ask for help you **will be banned from the #dev-builds channel without explanation**. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
         else
           if [ "$BUILD_TYPE" == "bleeding" ]; then
             EMBED_COLOR=15548997
             EMBED_TITLE="New Bleeding Build"
-            EMBED_DESCRIPTION=$'A new bleeding edge build is now available. These are for testing issues and not for general gameplay. 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION=$'A new bleeding edge build is now available. These are strictly for testing issues and not for general gameplay. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
           elif [ "$BUILD_TYPE" == "debug" ]; then
             EMBED_COLOR=2123412
@@ -641,7 +641,7 @@ jobs:
             MODS="$MODS_ENABLED_RELEASE"
           fi
         fi
-        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nMods Enabled: *'"${MODS}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
+        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\n**Name**: *'"${BASE_NAME}"$'*\n**Mods Enabled**: *'"${MODS}"$'*\n**File Size**: *'"${FILE_SIZE_MB}"$'*\n**SHA-256 Hash**: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
 
         jq -n \
           --arg EMBED_TITLE "$EMBED_TITLE" \
