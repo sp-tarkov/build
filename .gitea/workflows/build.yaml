@@ -4,7 +4,8 @@ on:
   schedule:
     - cron: '* 19 * * *' # Every day at 7pm UTC (3pm ET)
   push:
-    branches: [ trigger ]
+    # main can be removed when actions are available in the sub-project repos
+    branches: [ main, trigger ]
 
 jobs:
   prepare:
@@ -20,6 +21,10 @@ jobs:
       target_tag: ${{ steps.determine-context.outputs.target_tag }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
+      mod_enabled_bleeding: ${{ steps.mod-config.outputs.bleeding }}
+      mod_enabled_debug: ${{ steps.mod-config.outputs.debug }}
+      mod_enabled_release: ${{ steps.mod-config.outputs.release }}
+
     steps:
     - name: Determine Build Context
       id: determine-context
@@ -107,6 +112,45 @@ jobs:
 
         echo "::set-output name=client_version::${CLIENT_VERSION}"
         echo "::set-output name=spt_version::${SPT_VERSION}"
+      shell: bash
+
+    - name: Extract Mod Configurations
+      id: mod-config
+      run: |
+        rm -rf /workspace/refringe/Build/server-mods-config
+        git init /workspace/refringe/Build/server-mods-config
+        cd /workspace/refringe/Build/server-mods-config
+        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+        git config core.sparseCheckout true
+
+        echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
+        echo "project/src/ide/DebugEntry.ts" >> .git/info/sparse-checkout
+        echo "project/src/ide/ReleaseEntry.ts" >> .git/info/sparse-checkout
+
+        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+          REF=${{ steps.determine-context.outputs.branch_server }}
+        else
+          REF=${{ steps.determine-context.outputs.target_tag }}
+        fi
+
+        # Fetch and checkout the specific reference (branch or tag)
+        git fetch --depth=1 origin "${REF}"
+        git checkout FETCH_HEAD
+        ls -la project/src/ide
+
+        # Function to parse G_MODS_ENABLED value
+        parse_mods_enabled() {
+          grep 'G_MODS_ENABLED' $1 | sed -e 's/.*G_MODS_ENABLED\s*=\s*\(.*\);/\1/'
+        }
+
+        # Extract the configuration options
+        MODS_BLEEDING=$(parse_mods_enabled "project/src/ide/BleedingEdgeEntry.ts")
+        MODS_DEBUG=$(parse_mods_enabled "project/src/ide/DebugEntry.ts")
+        MODS_RELEASE=$(parse_mods_enabled "project/src/ide/ReleaseEntry.ts")
+
+        echo "::set-output name=bleeding::${MODS_BLEEDING}"
+        echo "::set-output name=debug::${MODS_DEBUG}"
+        echo "::set-output name=release::${MODS_RELEASE}"
       shell: bash
 
   build-server:
@@ -366,16 +410,35 @@ jobs:
         BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
         SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
         CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
+        TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
         DATE=$(date +%Y%m%d)
 
-        # Make BUILD_TYPE uppercase
-        UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-
-        # Conditionally format the BASE_NAME based on BUILD_TYPE
-        if [ "$BUILD_TYPE" = "release" ]; then
-          BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+        # Conditionally format the BASE_NAME based on BUILD_TYPE and if it's a nightly build
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+          BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
         else
-          BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+          # Make BUILD_TYPE and TARGET_TAG uppercase
+          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+          UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
+
+          if [ "$BUILD_TYPE" = "release" ]; then
+            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}"
+          else
+            # For debug and non-nightly-bleeding builds, include either TAG_PART or DATE, but not both
+            # Determine TAG_PART based on TARGET_TAG structure
+            TAG_PART=""
+            if [[ "$UPPER_TARGET_TAG" == *-*-* ]]; then
+              SUFFIX="${UPPER_TARGET_TAG##*-}"
+              if [ "$SUFFIX" != "$UPPER_TARGET_TAG" ]; then
+                TAG_PART="-${SUFFIX}"
+              fi
+            fi
+            if [ -n "$TAG_PART" ]; then
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}${TAG_PART}"
+            else
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+            fi
+          fi
         fi
 
         echo "::set-output name=base_name::${BASE_NAME}"
@@ -392,7 +455,7 @@ jobs:
         overwrite: true
 
   publish-release:
-    needs: [assemble-release, build-server]
+    needs: [prepare, assemble-release, build-server]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.5
@@ -543,6 +606,9 @@ jobs:
         LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
         LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
         LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
+        MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
+        MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
+        MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
       run: |
         cd /workspace/refringe/Build/
         FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
@@ -550,21 +616,32 @@ jobs:
         TIMESTAMP=$(date --iso-8601=seconds)
         FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
         FILE_HASH=$(sha256sum "$BUILD_NAME" | awk '{print $1}')
+        MODS=""
 
-        if [ "$BUILD_TYPE" == "bleeding" ]; then
-          EMBED_COLOR=14423100
-          EMBED_TITLE="A New BLEEDING Build Released"
-          EMBED_DESCRIPTION=$'A new bleeding build is now available for download. Mods are disabled for bleeding builds. 7-Zip is *required* to extract the release.'
-        elif [ "$BUILD_TYPE" == "debug" ]; then
-          EMBED_COLOR=5789784
-          EMBED_TITLE="New DEBUG Build Available"
-          EMBED_DESCRIPTION=$'A new debug build is now available for download. Mods are disabled for debug builds. 7-Zip is *required* to extract the release.'
+        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            EMBED_COLOR=0xfff700
+            EMBED_TITLE="Fresh Nightly Build"
+            EMBED_DESCRIPTION=$'A new nightly build is now available. These are untested and considered unstable. Absolutely no support is provided—If you ask for help you **will be banned from the #dev-builds channel without notice**. 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_BLEEDING"
         else
-          EMBED_COLOR=1374720
-          EMBED_TITLE="Release Build Now Available"
-          EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
+          if [ "$BUILD_TYPE" == "bleeding" ]; then
+            EMBED_COLOR=0xff0000
+            EMBED_TITLE="New Bleeding Build"
+            EMBED_DESCRIPTION=$'A new bleeding edge build is now available. These are for testing issues and not for general gameplay. 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_BLEEDING"
+          elif [ "$BUILD_TYPE" == "debug" ]; then
+            EMBED_COLOR=0x000055
+            EMBED_TITLE="New Debug Build"
+            EMBED_DESCRIPTION=$'A new debug build is now available. These have extra-verbose logging enabled. 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_DEBUG"
+          else
+            EMBED_COLOR=0x33ff00
+            EMBED_TITLE="New Stable Build"
+            EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_RELEASE"
+          fi
         fi
-        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
+        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\nName: *'"${BASE_NAME}"$'*\nMods Enabled: *'"${MODS}"$'*\nFile Size: *'"${FILE_SIZE_MB}"$'*\nSHA-256 Hash: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
 
         jq -n \
           --arg EMBED_TITLE "$EMBED_TITLE" \
