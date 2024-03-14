@@ -2,7 +2,7 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: '* 19 * * *' # Every day at 7pm UTC (3pm ET)
+    - cron: '* 13 * * *' # Every day at 3pm ET
   push:
     # main can be removed when actions are available in the sub-project repos
     branches: [ main, trigger ]
@@ -11,7 +11,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.5
+      image: refringe/spt-build-node:1.0.6
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
@@ -19,6 +19,7 @@ jobs:
       branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
       branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
       target_tag: ${{ steps.determine-context.outputs.target_tag }}
+      build_type: ${{ steps.determine-build-type.outputs.build_type }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
       mod_enabled_bleeding: ${{ steps.mod-config.outputs.bleeding }}
@@ -39,6 +40,28 @@ jobs:
           echo "::set-output name=is_nightly::false"
           echo "::set-output name=target_tag::3.8.0-BE-20240314"
         fi
+      shell: bash
+
+    - name: Determine Build Type
+      id: determine-build-type
+      run: |
+        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+          # Nightly builds are always considered "bleeding"
+          BUILD_TYPE="bleeding"
+        else
+          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+
+          # Debug build by default
+          # Bleeding builds have "-BE" in the target tag
+          # Release tags follow basic semantic versioning
+          BUILD_TYPE="debug"
+          if [[ "$TARGET_TAG" =~ -BE ]]; then
+            BUILD_TYPE="bleeding"
+          elif [[ "$TARGET_TAG" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
+            BUILD_TYPE="release"
+          fi
+        fi
+        echo "::set-output name=build_type::${BUILD_TYPE}"
       shell: bash
 
     - name: Check Existence
@@ -158,9 +181,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.5
-    outputs:
-      build_type: ${{ steps.build-type.outputs.build_type }}
+      image: refringe/spt-build-node:1.0.6
     steps:
     - name: Clone
       run: |
@@ -194,37 +215,6 @@ jobs:
         echo "Last Commit Message:" && git log -1 --pretty=%B
       shell: bash
 
-    - name: Determine Build Type
-      id: build-type
-      run: |
-        # Check if this is a nightly build
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          # Nightly builds are always considered "bleeding"
-          BUILD_TYPE="bleeding"
-        else
-          cd /workspace/refringe/Build/server
-
-          # Prepare tags for check
-          TAGS=$(git tag --contains HEAD || echo "no-tag")
-          if [ -z "$TAGS" ]; then
-            TAGS="no-tag"
-          fi
-          TAGS="${TAGS//$'\n'/-}"  # Replace newline characters with dashes
-          TAGS="${TAGS//,/-}"      # Replace commas with dashes
-
-          # Debug build by default
-          # Bleeding builds have "-BE" in the tag
-          # Release tags follow basic semantic versioning
-          BUILD_TYPE="debug"
-          if [[ "$TAGS" =~ -BE ]]; then
-            BUILD_TYPE="bleeding"
-          elif [[ "$TAGS" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
-            BUILD_TYPE="release"
-          fi
-        fi
-        echo "::set-output name=build_type::${BUILD_TYPE}"
-      shell: bash
-
     - name: Install Dependencies
       run: |
         cd /workspace/refringe/Build/server/project
@@ -236,7 +226,7 @@ jobs:
     - name: Build Server
       run: |
         cd /workspace/refringe/Build/server/project
-        BUILD_TYPE="${{ steps.build-type.outputs.build_type }}"
+        BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
         printf "\nBuilt!\n\n"
@@ -362,7 +352,7 @@ jobs:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.5
+      image: refringe/spt-build-node:1.0.6
     outputs:
       base_name: ${{ steps.generate-filename.outputs.base_name }}
       build_name: ${{ steps.generate-filename.outputs.build_name }}
@@ -407,7 +397,7 @@ jobs:
     - name: Generate Release Filename
       id: generate-filename
       run: |
-        BUILD_TYPE=${{ needs.build-server.outputs.build_type }}
+        BUILD_TYPE=${{ needs.prepare.outputs.build_type }}
         SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
         CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
         TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
@@ -458,7 +448,7 @@ jobs:
     needs: [prepare, assemble-release, build-server]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.5
+      image: refringe/spt-build-node:1.0.6
     steps:
     - name: Download Release Artifact
       uses: actions/download-artifact@v3
@@ -483,6 +473,7 @@ jobs:
       shell: bash
 
     - name: Create Torrent File
+      if: needs.prepare.outputs.build_type == 'release'
       id: torrent_create
       run: |
         BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
@@ -501,6 +492,7 @@ jobs:
       shell: bash
 
     - name: Upload Torrent to HTTPS Source
+      if: needs.prepare.outputs.build_type == 'release'
       id: upload-https-torrent
       run: |
         cd /workspace/refringe/Build/
@@ -525,21 +517,21 @@ jobs:
         echo "$FILE_LIST"
 
         # Filtering and processing the file list
-        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(DEBUG|BLEEDING).*\.(7z|torrent)$' | while read filename; do
-            echo "Processing file: $filename"
-            # Extract date from filename
-            if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
-              file_date="${BASH_REMATCH[1]}"
-              file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING).*\.(7z|torrent)$' | while read filename; do
+          echo "Processing file: $filename"
+          # Extract date from filename
+          if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
+            file_date="${BASH_REMATCH[1]}"
+            file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
 
-              current_date=$(date +%s)
-              limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
+            current_date=$(date +%s)
+            limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
 
-              if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                echo "Marked for deletion: $filename"
-                echo "rm \"/public/$filename\"" >> delete_commands.txt
-              fi
+            if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
+              echo "Marked for deletion: $filename"
+              echo "rm \"/public/$filename\"" >> delete_commands.txt
             fi
+          fi
         done
 
         # Check if there are files to delete and execute
@@ -572,16 +564,16 @@ jobs:
         mega-https on
         mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-        # List files and filter out old DEBUG or BLEEDING files
-        mega-ls /spt-release | grep -E 'SPT-(DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
+        # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
+        mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
           # Extract date from filename
           if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
             file_date="${BASH_REMATCH[1]}"
             file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
 
-            # Get current date minus 30 days
+            # Get current date minus 14 days
             current_date=$(date +%s)
-            limit_date=$(date -d "@$((current_date - 30 * 24 * 3600))" +%s)
+            limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
 
             # Compare dates and delete old files
             if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
@@ -600,7 +592,7 @@ jobs:
     - name: Post Build Info to Discord
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        BUILD_TYPE: ${{ needs.build-server.outputs.build_type }}
+        BUILD_TYPE: ${{ needs.prepare.outputs.build_type }}
         BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
         BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
         LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
@@ -611,7 +603,7 @@ jobs:
         MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
       run: |
         cd /workspace/refringe/Build/
-        FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
+        FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
         FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
         TIMESTAMP=$(date --iso-8601=seconds)
         FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
@@ -641,7 +633,14 @@ jobs:
             MODS="$MODS_ENABLED_RELEASE"
           fi
         fi
-        EMBED_DESCRIPTION+=$'\n\n**Build Information:** 📊\n**Name**: *'"${BASE_NAME}"$'*\n**Mods Enabled**: *'"${MODS}"$'*\n**File Size**: *'"${FILE_SIZE_MB}"$'*\n**SHA-256 Hash**: *'"${FILE_HASH}"$'*\n\n**Primary Download Link:** 🚀\n'"${LINK_MEGA}"$'\n\n**Torrent Link:** 🔗\n'"${LINK_TORRENT}"$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n**Mirrors:** 🌐\n'"${LINK_HTTPS}"
+
+        # Build the dynamic part of the description
+        EMBED_DESCRIPTION+=$'\n\n🗂️ **Build Information:** 🗂️\n**Name**: *'"${BASE_NAME}"$'*\n**Mods Enabled**: *'"${MODS}"$'*\n**File Size**: *'"${FILE_SIZE_MB}"$'*\n**SHA-256 Hash**: *'"${FILE_HASH}"$'*\n\n🚀 **Primary Download Link:** 🚀\n'"${LINK_MEGA}"$''
+        if [ -n "$LINK_TORRENT" ] && [ "$BUILD_TYPE" == "release" ]; then
+          # Conditionally add the torrent link for releases
+          EMBED_DESCRIPTION+=$'\n\n🔗 **Torrent Link:** 🔗\n'"${LINK_TORRENT}"$''
+        fi
+        EMBED_DESCRIPTION+=$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n🌐 **Mirrors:** 🌐\n'"${LINK_HTTPS}"
 
         jq -n \
           --arg EMBED_TITLE "$EMBED_TITLE" \
