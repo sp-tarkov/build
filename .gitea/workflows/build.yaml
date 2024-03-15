@@ -631,17 +631,25 @@ jobs:
           fi
         fi
 
-        jq -n \
+        fields_json='[
+          {"name": "Name", "value": "'"$BASE_NAME"'"},
+          {"name": "Type", "value": "'"$BUILD_TYPE"'", "inline": true},
+          {"name": "Mods Enabled", "value": "'"$MODS"'", "inline": true},
+          {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
+          {"name": "SHA-256 Hash", "value": "'"$FILE_HASH"'"},
+          {"name": "Primary Download Link", "value": "'"$LINK_MEGA"'"}
+        ]'
+        if [ "$BUILD_TYPE" = "release" ]; then
+          torrent_link_json=',{"name": "Torrent Link", "value": "'"$LINK_TORRENT"'"}'
+          fields_json=$(echo "$fields_json" | jq ". += [$torrent_link_json]")
+        fi
+        fallback_mirror_json=',{"name": "Fallback Mirror", "value": "'"$LINK_HTTPS"'"}'
+        fields_json=$(echo "$fields_json" | jq ". += [$fallback_mirror_json]")
+
+        payload=$(jq -n \
+          --argjson fields "$fields_json" \
           --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
-          --arg BASE_NAME "$BASE_NAME" \
-          --arg MODS "$MODS" \
-          --arg FILE_SIZE_MB "$FILE_SIZE_MB" \
-          --arg FILE_HASH "$FILE_HASH" \
-          --arg BUILD_TYPE "$BUILD_TYPE" \
-          --arg LINK_MEGA "$LINK_MEGA" \
-          --arg LINK_TORRENT "$LINK_TORRENT" \
-          --arg LINK_HTTPS "$LINK_HTTPS" \
-          --argjson EMBED_COLOR $EMBED_COLOR \
+          --argjson EMBED_COLOR "$EMBED_COLOR" \
           --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
           --arg TIMESTAMP "$TIMESTAMP" \
           '{
@@ -650,57 +658,15 @@ jobs:
               {
                 "title": "Build Information",
                 "color": $EMBED_COLOR,
-                "fields": [
-                  {
-                    "name": "Name",
-                    "value": $BASE_NAME
-                  },
-                  {
-                    "name": "Type",
-                    "value": $UPPER_BUILD_TYPE,
-                    "inline": true
-                  },
-                  {
-                    "name": "Mods Enabled",
-                    "value": $MODS,
-                    "inline": true
-                  },
-                  {
-                    "name": "File Size",
-                    "value": $FILE_SIZE_MB,
-                    "inline": true
-                  },
-                  {
-                    "name": "SHA-256 Hash",
-                    "value": $FILE_HASH
-                  },
-                  {
-                    "name": "Primary Download Link",
-                    "value": $LINK_MEGA
-                  }
-                ] +
-                (if $BUILD_TYPE == "release" then [
-                  {
-                    "name": "Torrent Link",
-                    "value": $LINK_TORRENT
-                  }
-                ] else [] end) +
-                [
-                  {
-                    "name": "Fallback Mirror",
-                    "value": $LINK_HTTPS
-                  }
-                ],
-                "footer": {
-                  "text": $FOOTER_MESSAGE,
-                  "icon_url": "https://i.imgur.com/28JJJec.png"
-                },
+                "fields": $fields,
+                "footer": {"text": $FOOTER_MESSAGE, "icon_url": "https://i.imgur.com/28JJJec.png"},
                 "timestamp": $TIMESTAMP
               }
             ],
             "username": "BuildBot",
             "avatar_url": "https://i.imgur.com/28JJJec.png"
-          }' > payload_discord.json
+          }')
+        echo "$payload" > payload_discord.json
 
         echo "Payload Generated:"
         cat payload_discord.json
