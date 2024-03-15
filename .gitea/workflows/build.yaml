@@ -603,7 +603,8 @@ jobs:
         MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
       run: |
         cd /workspace/refringe/Build/
-        FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
+        UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+        FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
         FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
         TIMESTAMP=$(date --iso-8601=seconds)
         FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
@@ -611,60 +612,94 @@ jobs:
         MODS=""
 
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            EMBED_COLOR=16705372
-            EMBED_TITLE="Fresh Nightly Build"
-            EMBED_DESCRIPTION=$'A new nightly build is now available. These are untested and considered unstable. Absolutely no support is provided—If you ask for help you **will be banned from the #dev-builds channel without explanation**. 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_BLEEDING"
+          EMBED_COLOR=16705372
+          EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
+          MODS="$MODS_ENABLED_BLEEDING"
         else
           if [ "$BUILD_TYPE" == "bleeding" ]; then
             EMBED_COLOR=15548997
-            EMBED_TITLE="New Bleeding Build"
-            EMBED_DESCRIPTION=$'A new bleeding edge build is now available. These are strictly for testing issues and not for general gameplay. 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
           elif [ "$BUILD_TYPE" == "debug" ]; then
             EMBED_COLOR=2123412
-            EMBED_TITLE="New Debug Build"
-            EMBED_DESCRIPTION=$'A new debug build is now available. These have extra-verbose logging enabled. 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_DEBUG"
           else
             EMBED_COLOR=5763719
-            EMBED_TITLE="New Stable Build"
-            EMBED_DESCRIPTION=$'A new stable release build is now ready for download. 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION=$'A new stable build is now ready for download. 7-Zip is *required* to extract the release. Have fun! 🎉'
             MODS="$MODS_ENABLED_RELEASE"
           fi
         fi
 
-        # Build the dynamic part of the description
-        EMBED_DESCRIPTION+=$'\n\n🗂️ **Build Information:** 🗂️\n**Name**: *'"${BASE_NAME}"$'*\n**Mods Enabled**: *'"${MODS}"$'*\n**File Size**: *'"${FILE_SIZE_MB}"$'*\n**SHA-256 Hash**: *'"${FILE_HASH}"$'*\n\n🚀 **Primary Download Link:** 🚀\n'"${LINK_MEGA}"$''
-        if [ -n "$LINK_TORRENT" ] && [ "$BUILD_TYPE" == "release" ]; then
-          # Conditionally add the torrent link for releases
-          EMBED_DESCRIPTION+=$'\n\n🔗 **Torrent Link:** 🔗\n'"${LINK_TORRENT}"$''
-        fi
-        EMBED_DESCRIPTION+=$'\n\nIn order to conserve bandwidth, please consider using the *above* methods to download the release. If you have issues using those methods, you are free to download using any of the following HTTP mirrors.\n\nWhile the links *below* are not secret, **do not advertise them**. The primary MEGA link or torrent should be used to advertise any downloads.\n\n🌐 **Mirrors:** 🌐\n'"${LINK_HTTPS}"
-
         jq -n \
-          --arg EMBED_TITLE "$EMBED_TITLE" \
           --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
+          --arg BASE_NAME "$BASE_NAME" \
+          --arg MODS "$MODS" \
+          --arg FILE_SIZE_MB "$FILE_SIZE_MB" \
+          --arg FILE_HASH "$FILE_HASH" \
+          --arg BUILD_TYPE "$BUILD_TYPE" \
           --arg LINK_MEGA "$LINK_MEGA" \
+          --arg LINK_TORRENT "$LINK_TORRENT" \
+          --arg LINK_HTTPS "$LINK_HTTPS" \
           --argjson EMBED_COLOR $EMBED_COLOR \
           --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
           --arg TIMESTAMP "$TIMESTAMP" \
           '{
-            "username": "BuildBot",
-            "avatar_url": "https://i.imgur.com/28JJJec.png",
-            "content": "✨ **New Build Available!** ✨",
+            "content": $EMBED_DESCRIPTION,
             "embeds": [
               {
-                "title": $EMBED_TITLE,
-                "description": $EMBED_DESCRIPTION,
-                "url": $LINK_MEGA,
-                "color": $EMBED_COLOR,
-                "footer": {
-                  "text": $FOOTER_MESSAGE
+              "title": "Build Information",
+              "color": $EMBED_COLOR,
+              "fields": [
+                {
+                  "name": "Name",
+                  "value": $BASE_NAME
                 },
-                "timestamp": $TIMESTAMP
+                {
+                  "name": "Type",
+                  "value": $UPPER_BUILD_TYPE,
+                  "inline": true
+                },
+                {
+                  "name": "Mods Enabled",
+                  "value": $MODS,
+                  "inline": true
+                },
+                {
+                  "name": "File Size",
+                  "value": $FILE_SIZE_MB,
+                  "inline": true
+                },
+                {
+                  "name": "SHA-256 Hash",
+                  "value": $FILE_HASH
+                },
+                {
+                  "name": "Primary Download Link",
+                  "value": $LINK_MEGA
+                }
+              ]
+              + (if $BUILD_TYPE == "release" then
+                [{
+                  "name": "Torrent Link",
+                  "value": $LINK_TORRENT
+                }]
+                else [] end)
+              + [
+                {
+                  "name": "Fallback Mirror",
+                  "value": $LINK_HTTPS
+                }
+              ],
+              "footer": {
+                "text": $FOOTER_MESSAGE,
+                "icon_url": "https://i.imgur.com/28JJJec.png"
+              },
+              "timestamp": $TIMESTAMP
               }
-            ]
+            ],
+            "username": "BuildBot",
+            "avatar_url": "https://i.imgur.com/28JJJec.png"
           }' > payload_discord.json
 
         echo "Payload Generated:"
