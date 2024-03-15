@@ -648,54 +648,54 @@ jobs:
             "content": $EMBED_DESCRIPTION,
             "embeds": [
               {
-              "title": "Build Information",
-              "color": $EMBED_COLOR,
-              "fields": [
-                {
-                  "name": "Name",
-                  "value": $BASE_NAME
+                "title": "Build Information",
+                "color": $EMBED_COLOR,
+                "fields": [
+                  {
+                    "name": "Name",
+                    "value": $BASE_NAME
+                  },
+                  {
+                    "name": "Type",
+                    "value": $UPPER_BUILD_TYPE,
+                    "inline": true
+                  },
+                  {
+                    "name": "Mods Enabled",
+                    "value": $MODS,
+                    "inline": true
+                  },
+                  {
+                    "name": "File Size",
+                    "value": $FILE_SIZE_MB,
+                    "inline": true
+                  },
+                  {
+                    "name": "SHA-256 Hash",
+                    "value": $FILE_HASH
+                  },
+                  {
+                    "name": "Primary Download Link",
+                    "value": $LINK_MEGA
+                  }
+                ] +
+                (if $BUILD_TYPE == "release" then [
+                  {
+                    "name": "Torrent Link",
+                    "value": $LINK_TORRENT
+                  }
+                ] else [] end) +
+                [
+                  {
+                    "name": "Fallback Mirror",
+                    "value": $LINK_HTTPS
+                  }
+                ],
+                "footer": {
+                  "text": $FOOTER_MESSAGE,
+                  "icon_url": "https://i.imgur.com/28JJJec.png"
                 },
-                {
-                  "name": "Type",
-                  "value": $UPPER_BUILD_TYPE,
-                  "inline": true
-                },
-                {
-                  "name": "Mods Enabled",
-                  "value": $MODS,
-                  "inline": true
-                },
-                {
-                  "name": "File Size",
-                  "value": $FILE_SIZE_MB,
-                  "inline": true
-                },
-                {
-                  "name": "SHA-256 Hash",
-                  "value": $FILE_HASH
-                },
-                {
-                  "name": "Primary Download Link",
-                  "value": $LINK_MEGA
-                }
-              ]
-              + (if $BUILD_TYPE == "release" then
-                [{
-                  "name": "Torrent Link",
-                  "value": $LINK_TORRENT
-                }]
-                else [] end)
-              + [
-                {
-                  "name": "Fallback Mirror",
-                  "value": $LINK_HTTPS
-                }
-              ],
-              "footer": {
-                "text": $FOOTER_MESSAGE,
-                "icon_url": "https://i.imgur.com/28JJJec.png"
-              },
-              "timestamp": $TIMESTAMP
+                "timestamp": $TIMESTAMP
               }
             ],
             "username": "BuildBot",
