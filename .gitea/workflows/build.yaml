@@ -23,6 +23,7 @@ jobs:
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
       mod_enabled_bleeding: ${{ steps.mod-config.outputs.bleeding }}
+      mod_enabled_bleedingmods: ${{ steps.mod-config.outputs.bleedingmods }}
       mod_enabled_debug: ${{ steps.mod-config.outputs.debug }}
       mod_enabled_release: ${{ steps.mod-config.outputs.release }}
 
@@ -46,18 +47,22 @@ jobs:
       id: determine-build-type
       run: |
         if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-          # Nightly builds are always considered "bleeding"
-          BUILD_TYPE="bleeding"
+          # Nightly builds are currently considered a "bleedingmods" type build
+          BUILD_TYPE="bleedingmods"
         else
           TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+          TARGET_TAG_UPPER="${TARGET_TAG^^}"
 
           # Debug build by default
+          # BleedingMods builds have "-BEM" in the target tag
           # Bleeding builds have "-BE" in the target tag
           # Release tags follow basic semantic versioning
           BUILD_TYPE="debug"
-          if [[ "$TARGET_TAG" =~ -BE ]]; then
+          if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
+            BUILD_TYPE="bleedingmods"
+          elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
             BUILD_TYPE="bleeding"
-          elif [[ "$TARGET_TAG" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
+          elif [[ "$TARGET_TAG_UPPER" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
             BUILD_TYPE="release"
           fi
         fi
@@ -147,6 +152,7 @@ jobs:
         git config core.sparseCheckout true
 
         echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
+        echo "project/src/ide/BleedingEdgeModsEntry.ts" >> .git/info/sparse-checkout
         echo "project/src/ide/DebugEntry.ts" >> .git/info/sparse-checkout
         echo "project/src/ide/ReleaseEntry.ts" >> .git/info/sparse-checkout
 
@@ -168,10 +174,12 @@ jobs:
 
         # Extract the configuration options
         MODS_BLEEDING=$(parse_mods_enabled "project/src/ide/BleedingEdgeEntry.ts")
+        MODS_BLEEDINGMODS=$(parse_mods_enabled "project/src/ide/BleedingEdgeModsEntry.ts")
         MODS_DEBUG=$(parse_mods_enabled "project/src/ide/DebugEntry.ts")
         MODS_RELEASE=$(parse_mods_enabled "project/src/ide/ReleaseEntry.ts")
 
         echo "::set-output name=bleeding::${MODS_BLEEDING}"
+        echo "::set-output name=bleedingmods::${MODS_BLEEDINGMODS}"
         echo "::set-output name=debug::${MODS_DEBUG}"
         echo "::set-output name=release::${MODS_RELEASE}"
       shell: bash
@@ -517,7 +525,7 @@ jobs:
         echo "$FILE_LIST"
 
         # Filtering and processing the file list
-        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING).*\.(7z|torrent)$' | while read filename; do
+        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.(7z|torrent)$' | while read filename; do
           echo "Processing file: $filename"
           # Extract date from filename
           if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
@@ -565,7 +573,7 @@ jobs:
         mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
         # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
-        mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING).*\.7z$' | while read -r filename; do
+        mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
           # Extract date from filename
           if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
             file_date="${BASH_REMATCH[1]}"
@@ -599,6 +607,7 @@ jobs:
         LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
         LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
         MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
+        MODS_ENABLED_BLEEDINGMODS: ${{ needs.prepare.outputs.mod_enabled_bleedingmods }}
         MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
         MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
       run: |
@@ -614,9 +623,13 @@ jobs:
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           EMBED_COLOR=16705372
           EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
-          MODS="$MODS_ENABLED_BLEEDING"
+          MODS="$MODS_ENABLED_BLEEDINGMODS"
         else
           if [ "$BUILD_TYPE" == "bleeding" ]; then
+            EMBED_COLOR=15548997
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_BLEEDING"
+          elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
             EMBED_COLOR=15548997
             EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
             MODS="$MODS_ENABLED_BLEEDING"
