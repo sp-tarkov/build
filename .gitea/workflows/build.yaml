@@ -206,6 +206,8 @@ jobs:
           echo "Cloning tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/refringe/Build/server
         fi
+
+        cd /workspace/refringe/Build/server
         echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
       shell: bash
 
