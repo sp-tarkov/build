@@ -190,8 +190,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.6
+    outputs:
+      server_commit: ${{ steps.clone.outputs.server_commit }}
     steps:
     - name: Clone
+      id: clone
       run: |
         rm -rf /workspace/refringe/Build/server
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -203,6 +206,7 @@ jobs:
           echo "Cloning tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/refringe/Build/server
         fi
+        echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
       shell: bash
 
     - name: Pull LFS Files
@@ -408,19 +412,20 @@ jobs:
         BUILD_TYPE=${{ needs.prepare.outputs.build_type }}
         SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
         CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
+        SERVER_COMMIT=${{ needs.build-server.outputs.server_commit }}
         TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
         DATE=$(date +%Y%m%d)
 
         # Conditionally format the BASE_NAME based on BUILD_TYPE and if it's a nightly build
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+          BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
         else
           # Make BUILD_TYPE and TARGET_TAG uppercase
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
           UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
 
           if [ "$BUILD_TYPE" = "release" ]; then
-            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}"
+            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
           else
             # For debug and non-nightly-bleeding builds, include either TAG_PART or DATE, but not both
             # Determine TAG_PART based on TARGET_TAG structure
@@ -432,9 +437,9 @@ jobs:
               fi
             fi
             if [ -n "$TAG_PART" ]; then
-              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}${TAG_PART}"
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}${TAG_PART}"
             else
-              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${DATE}"
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
             fi
           fi
         fi
