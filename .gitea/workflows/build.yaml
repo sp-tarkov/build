@@ -632,7 +632,7 @@ jobs:
           elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
             EMBED_COLOR=15548997
             EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_BLEEDING"
+            MODS="$MODS_ENABLED_BLEEDINGMODS"
           elif [ "$BUILD_TYPE" == "debug" ]; then
             EMBED_COLOR=2123412
             EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
