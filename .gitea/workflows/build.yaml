@@ -483,8 +483,8 @@ jobs:
       run: |
         cd /workspace/refringe/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
-        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/${{ needs.assemble-release.outputs.build_name }}"
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ needs.assemble-release.outputs.build_name }}"
       shell: bash
 
     - name: Create Torrent File
@@ -512,8 +512,8 @@ jobs:
       run: |
         cd /workspace/refringe/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public
-        echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/${{ steps.torrent_create.outputs.torrent_name }}"
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.torrent_create.outputs.torrent_name }}"
       shell: bash
 
     - name: Clean Old HTTPS Source Releases
@@ -522,7 +522,7 @@ jobs:
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
 
         # Creating a script for sftp to execute
-        echo "cd /public" > sftp_commands.txt
+        echo "cd /public/builds" > sftp_commands.txt
         echo "ls" >> sftp_commands.txt
 
         # Fetch a remote list of files
@@ -544,7 +544,7 @@ jobs:
 
             if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
               echo "Marked for deletion: $filename"
-              echo "rm \"/public/$filename\"" >> delete_commands.txt
+              echo "rm \"/public/builds/$filename\"" >> delete_commands.txt
             fi
           fi
         done
