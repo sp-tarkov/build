@@ -39,7 +39,7 @@ jobs:
           echo "::set-output name=branch_launcher::3.8.0"
         else
           echo "::set-output name=is_nightly::false"
-          echo "::set-output name=target_tag::3.8.0-BEM-20240316"
+          echo "::set-output name=target_tag::3.8.0-BEM-20240319"
         fi
       shell: bash
 
