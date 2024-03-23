@@ -2,7 +2,7 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: '* 13 * * *' # Every day at 3pm ET
+    - cron: '* 13 * * *' # Every day at 2pm ET
   push:
     # main can be removed when actions are available in the sub-project repos
     branches: [ main, trigger ]
@@ -39,7 +39,7 @@ jobs:
           echo "::set-output name=branch_launcher::3.8.0"
         else
           echo "::set-output name=is_nightly::false"
-          echo "::set-output name=target_tag::3.8.0-BEM-20240319"
+          echo "::set-output name=target_tag::3.8.0-BEM-20240323"
         fi
       shell: bash
 
@@ -693,5 +693,6 @@ jobs:
         curl -H "Content-Type: application/json" \
           -X POST \
           --data-binary @payload_discord.json \
+          -v \
           $DISCORD_WEBHOOK_URL
       shell: bash
