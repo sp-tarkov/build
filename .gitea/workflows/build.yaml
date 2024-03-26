@@ -702,7 +702,7 @@ jobs:
     if: always()
     steps:
     - name: Remove Artifacts
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v2
       with:
           name: "*-artifact"
           failOnError: false
