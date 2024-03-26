@@ -624,7 +624,7 @@ jobs:
         FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
         TIMESTAMP=$(date --iso-8601=seconds)
         FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
-        FILE_HASH=$(sha256sum "$BUILD_NAME" | awk '{print $1}')
+        FILE_HASH=$(md5sum "$BUILD_NAME" | awk '{print $1}' | xxd -r -p | base64)
         MODS=""
 
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -656,7 +656,7 @@ jobs:
           {"name": "Type", "value": "'"$BUILD_TYPE"'", "inline": true},
           {"name": "Mods Enabled", "value": "'"$MODS"'", "inline": true},
           {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
-          {"name": "SHA-256 Hash", "value": "'"$FILE_HASH"'"},
+          {"name": "File Hash", "value": "'"$FILE_HASH"'"},
           {"name": "Primary Download Link", "value": "'"$LINK_MEGA"'"}
         ]'
         if [ "$BUILD_TYPE" = "release" ]; then
