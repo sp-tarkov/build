@@ -693,3 +693,15 @@ jobs:
           -v \
           $DISCORD_WEBHOOK_URL
       shell: bash
+
+  clean:
+    needs: [publish-release]
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-node:1.0.6
+    steps:
+    - name: Remove Artifacts
+      uses: geekyeggo/delete-artifact@v5
+      with:
+          name: "*-artifact"
+          failOnError: false
