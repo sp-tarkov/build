@@ -483,7 +483,7 @@ jobs:
       run: |
         cd /workspace/SPT-AKI/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > /etc/ssh/ssh_known_hosts
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=/etc/ssh/ssh_known_hosts" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -vvv -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=/etc/ssh/ssh_known_hosts" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
         echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ needs.assemble-release.outputs.build_name }}"
       shell: bash
 
