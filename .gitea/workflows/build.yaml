@@ -11,7 +11,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.6
+      image: refringe/spt-build-node:1.0.7
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
@@ -189,7 +189,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.6
+      image: refringe/spt-build-node:1.0.7
     outputs:
       server_commit: ${{ steps.clone.outputs.server_commit }}
     steps:
@@ -366,7 +366,7 @@ jobs:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.6
+      image: refringe/spt-build-node:1.0.7
     outputs:
       base_name: ${{ steps.generate-filename.outputs.base_name }}
       build_name: ${{ steps.generate-filename.outputs.build_name }}
@@ -463,7 +463,7 @@ jobs:
     needs: [prepare, assemble-release, build-server]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.6
+      image: refringe/spt-build-node:1.0.7
     steps:
     - name: Download Release Artifact
       uses: actions/download-artifact@v3
@@ -698,7 +698,7 @@ jobs:
     needs: [publish-release]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.6
+      image: refringe/spt-build-node:1.0.7
     steps:
     - name: Remove Artifacts
       uses: geekyeggo/delete-artifact@v5
