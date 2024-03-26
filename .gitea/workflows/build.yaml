@@ -699,6 +699,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.7
+    if: always()
     steps:
     - name: Remove Artifacts
       uses: geekyeggo/delete-artifact@v5
