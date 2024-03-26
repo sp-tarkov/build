@@ -311,7 +311,7 @@ jobs:
     - name: Build Modules
       run: |
         cd /workspace/SPT-AKI/Build/modules/project
-        dotnet build -p:Version=${{ needs.prepare.outputs.spt_version }}
+        dotnet build -c Release -p:Version=${{ needs.prepare.outputs.spt_version }}
         printf "\nBuilt!\n\n"
         tree /workspace/SPT-AKI/Build/modules/project/Build
       shell: bash
