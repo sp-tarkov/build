@@ -18,8 +18,7 @@ jobs:
         git config --global user.name "TriggerBot"
 
     - name: Clone Build Repository
-      run: git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_PASSWORD }}@git.refringe.com/refringe/Build.git ../main-build-repo
-
+      run: git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_PASSWORD }}@dev.sp-tarkov.com/SPT-AKI/Build.git ../main-build-repo
     - name: Trigger Branch
       working-directory: ../main-build-repo
       run: git checkout -b trigger || git checkout trigger
