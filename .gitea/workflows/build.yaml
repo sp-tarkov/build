@@ -482,8 +482,8 @@ jobs:
       id: upload-https-7z
       run: |
         cd /workspace/SPT-AKI/Build/
-        echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        echo "${{ secrets.SFTP_HOST_KEY }}" > /etc/ssh/ssh_known_hosts
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=/etc/ssh/ssh_known_hosts" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
         echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ needs.assemble-release.outputs.build_name }}"
       shell: bash
 
@@ -511,22 +511,22 @@ jobs:
       id: upload-https-torrent
       run: |
         cd /workspace/SPT-AKI/Build/
-        echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        echo "${{ secrets.SFTP_HOST_KEY }}" > /etc/ssh/ssh_known_hosts
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=/etc/ssh/ssh_known_hosts" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
         echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.torrent_create.outputs.torrent_name }}"
       shell: bash
 
     - name: Clean Old HTTPS Source Releases
       run: |
         cd /workspace/SPT-AKI/Build/
-        echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
+        echo "${{ secrets.SFTP_HOST_KEY }}" > /etc/ssh/ssh_known_hosts
 
         # Creating a script for sftp to execute
         echo "cd /public/builds" > sftp_commands.txt
         echo "ls" >> sftp_commands.txt
 
         # Fetch a remote list of files
-        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=/etc/ssh/ssh_known_hosts -oStrictHostKeyChecking=yes -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
 
         echo "Files listed:"
         echo "$FILE_LIST"
@@ -552,7 +552,7 @@ jobs:
         # Check if there are files to delete and execute
         if [ -s delete_commands.txt ]; then
           echo "Running deletion task..."
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -oBatchMode=no -oPort=${{ secrets.SFTP_PORT }} -oUserKnownHostsFile=/etc/ssh/ssh_known_hosts -oStrictHostKeyChecking=yes -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
         else
           echo "No old files to delete."
         fi
