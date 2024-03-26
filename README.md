@@ -6,7 +6,7 @@ This document outlines the Continuous Integration and Continuous Deployment (CI/
 
 TODO: Update for Gitea
 
-Each of the three project repositories (`SPT-AKI/Modules`, `SPT-AKI/Server`, `SPT-AKI/Launcher`) requires a `.drone.yml` file configured to trigger a build in this `SPT-AKI/Build` repository using the Drone downstream plugin upon a new tag push (e.g., `v3.8.0`). The contents of the `.drone.yml` file can be found in `project-trigger.yml`. Note that the file must be present and named `.drone.yml` to trigger the build process.
+~~Each of the three project repositories (`SPT-AKI/Modules`, `SPT-AKI/Server`, `SPT-AKI/Launcher`) requires a `.drone.yml` file configured to trigger a build in this `SPT-AKI/Build` repository using the Drone downstream plugin upon a new tag push (e.g., `v3.8.0`). The contents of the `.drone.yml` file can be found in `project-trigger.yml`. Note that the file must be present and named `.drone.yml` to trigger the build process.~~
 
 ### Build Process
 
@@ -16,16 +16,8 @@ This repository initiates the CI/CD build process by performing the following ac
 1. Clones the tagged commits of each repository.
 1. Builds each project.
 1. Combines and compresses the build files into a release file.
-1. Copies the release file to a web-accessible location.
-1. Release notifications (creates a Gitea release, sends a Discord notification, etc.)
-
-## Gitea Runner Configuration
-
-TODO: Update for Gitea
-
-### Run the Runner
-
-TODO: Update for Gitea
+1. Copies the release file to web-accessible locations.
+1. Sends release notifications.
 
 ## Module Requirements
 
