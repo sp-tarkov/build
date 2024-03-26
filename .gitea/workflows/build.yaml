@@ -114,9 +114,9 @@ jobs:
     - name: Extract Versions
       id: versions
       run: |
-        rm -rf /workspace/refringe/Build/server-core
-        git init /workspace/refringe/Build/server-core
-        cd /workspace/refringe/Build/server-core
+        rm -rf /workspace/SPT-AKI/Build/server-core
+        git init /workspace/SPT-AKI/Build/server-core
+        cd /workspace/SPT-AKI/Build/server-core
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
         echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
@@ -145,9 +145,9 @@ jobs:
     - name: Extract Mod Configurations
       id: mod-config
       run: |
-        rm -rf /workspace/refringe/Build/server-mods-config
-        git init /workspace/refringe/Build/server-mods-config
-        cd /workspace/refringe/Build/server-mods-config
+        rm -rf /workspace/SPT-AKI/Build/server-mods-config
+        git init /workspace/SPT-AKI/Build/server-mods-config
+        cd /workspace/SPT-AKI/Build/server-mods-config
         git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
         git config core.sparseCheckout true
 
@@ -196,30 +196,30 @@ jobs:
     - name: Clone
       id: clone
       run: |
-        rm -rf /workspace/refringe/Build/server
+        rm -rf /workspace/SPT-AKI/Build/server
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_server }}
           echo "Cloning branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/server
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/server
         else
           TAG=${{ needs.prepare.outputs.target_tag }}
           echo "Cloning tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/refringe/Build/server
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/server
         fi
 
-        cd /workspace/refringe/Build/server
+        cd /workspace/SPT-AKI/Build/server
         echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
       shell: bash
 
     - name: Pull LFS Files
       run: |
-        cd /workspace/refringe/Build/server
+        cd /workspace/SPT-AKI/Build/server
         git lfs pull && git lfs ls-files
       shell: bash
 
     - name: Runner Debug Information
       run: |
-        cd /workspace/refringe/Build/server
+        cd /workspace/SPT-AKI/Build/server
         echo "Git version: $(git --version)"
         echo "Git LFS version: $(git-lfs --version)"
         echo "Node.js version: $(node --version)"
@@ -231,7 +231,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        cd /workspace/refringe/Build/server/project
+        cd /workspace/SPT-AKI/Build/server/project
         rm -rf package-lock.json node_modules
         npm cache clean --force
         npm install
@@ -239,19 +239,19 @@ jobs:
 
     - name: Build Server
       run: |
-        cd /workspace/refringe/Build/server/project
+        cd /workspace/SPT-AKI/Build/server/project
         BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
         echo "Running build for $BUILD_TYPE"
         npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
         printf "\nBuilt!\n\n"
-        tree -C /workspace/refringe/Build/server/project/build
+        tree -C /workspace/SPT-AKI/Build/server/project/build
       shell: bash
 
     - name: Artifact Server
       uses: actions/upload-artifact@v3
       with:
         name: server-artifact
-        path: /workspace/refringe/Build/server/project/build/
+        path: /workspace/SPT-AKI/Build/server/project/build/
         compression-level: 0
         retention-days: 1
         overwrite: true
@@ -268,17 +268,17 @@ jobs:
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_modules }}
           echo "Cloning modules from branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/modules
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/modules
         else
           TAG=${{ needs.prepare.outputs.target_tag }}
           echo "Cloning modules from tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/refringe/Build/modules
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/modules
         fi
       shell: bash
 
     - name: Download Client Module Package
       run: |
-        DIR_MANAGED="/workspace/refringe/Build/modules/project/Shared/Managed"
+        DIR_MANAGED="/workspace/SPT-AKI/Build/modules/project/Shared/Managed"
         DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.zip"
         DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.zip"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
@@ -296,31 +296,31 @@ jobs:
 
     - name: Decompress Client Module Package
       run: |
-        cd /workspace/refringe/Build/modules/project/Shared/Managed
+        cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
         7z x ${{ needs.prepare.outputs.client_version }}.zip -aoa
         echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
       run: |
-        cd /workspace/refringe/Build/modules/project/Shared/Managed
+        cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
         rm -f ${{ needs.prepare.outputs.client_version }}.zip
         echo "Client module package deleted."
       shell: bash
 
     - name: Build Modules
       run: |
-        cd /workspace/refringe/Build/modules/project
+        cd /workspace/SPT-AKI/Build/modules/project
         dotnet build
         printf "\nBuilt!\n\n"
-        tree /workspace/refringe/Build/modules/project/Build
+        tree /workspace/SPT-AKI/Build/modules/project/Build
       shell: bash
 
     - name: Artifact Modules
       uses: actions/upload-artifact@v3
       with:
         name: modules-artifact
-        path: /workspace/refringe/Build/modules/project/Build
+        path: /workspace/SPT-AKI/Build/modules/project/Build
         compression-level: 0
         retention-days: 1
         overwrite: true
@@ -337,27 +337,27 @@ jobs:
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_launcher }}
           echo "Cloning launcher from branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/refringe/Build/launcher
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/launcher
         else
           TAG=${{ needs.prepare.outputs.target_tag }}
           echo "Cloning launcher from tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/refringe/Build/launcher
+          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/launcher
         fi
       shell: bash
 
     - name: Build Launcher
       run: |
-        cd /workspace/refringe/Build/launcher/project
+        cd /workspace/SPT-AKI/Build/launcher/project
         dotnet build
         printf "\nBuilt!\n\n"
-        tree /workspace/refringe/Build/launcher/project/Build
+        tree /workspace/SPT-AKI/Build/launcher/project/Build
       shell: bash
 
     - name: Artifact Launcher
       uses: actions/upload-artifact@v3
       with:
         name: launcher-artifact
-        path: /workspace/refringe/Build/launcher/project/Build
+        path: /workspace/SPT-AKI/Build/launcher/project/Build
         compression-level: 0
         retention-days: 1
         overwrite: true
@@ -373,39 +373,39 @@ jobs:
     steps:
     - name: Clean Directory
       run: |
-        rm -rf /workspace/refringe/Build/release /workspace/refringe/Build/build
-        mkdir -p /workspace/refringe/Build/release
+        rm -rf /workspace/SPT-AKI/Build/release /workspace/SPT-AKI/Build/build
+        mkdir -p /workspace/SPT-AKI/Build/release
       shell: bash
 
     - name: Download Server Artifact
       uses: actions/download-artifact@v3
       with:
         name: server-artifact
-        path: /workspace/refringe/Build/release/
+        path: /workspace/SPT-AKI/Build/release/
 
     - name: Download Modules Artifact
       uses: actions/download-artifact@v3
       with:
         name: modules-artifact
-        path: /workspace/refringe/Build/release/
+        path: /workspace/SPT-AKI/Build/release/
 
     - name: Download Launcher Artifact
       uses: actions/download-artifact@v3
       with:
         name: launcher-artifact
-        path: /workspace/refringe/Build/release/
+        path: /workspace/SPT-AKI/Build/release/
 
     - name: Clone Build Project
       uses: actions/checkout@v3
       with:
-        path: /workspace/refringe/Build/build
+        path: /workspace/SPT-AKI/Build/build
 
     - name: Merge Static Assets and Dynamic Files
-      run: cp -rvf /workspace/refringe/Build/build/static-assets/* /workspace/refringe/Build/release/
+      run: cp -rvf /workspace/SPT-AKI/Build/build/static-assets/* /workspace/SPT-AKI/Build/release/
       shell: bash
 
     - name: List Release Contents
-      run: tree /workspace/refringe/Build/release
+      run: tree /workspace/SPT-AKI/Build/release
       shell: bash
 
     - name: Generate Release Filename
@@ -454,7 +454,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: release-artifact
-        path: /workspace/refringe/Build/release
+        path: /workspace/SPT-AKI/Build/release
         compression-level: 0
         retention-days: 1
         overwrite: true
@@ -469,11 +469,11 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: release-artifact
-        path: /workspace/refringe/Build/release
+        path: /workspace/SPT-AKI/Build/release
 
     - name: Compress Release
       run: |
-        cd /workspace/refringe/Build/release
+        cd /workspace/SPT-AKI/Build/release
         7z a -mx=9 -m0=lzma2 "../${{ needs.assemble-release.outputs.build_name }}" ./*
         echo "Release compressed as ${{ needs.assemble-release.outputs.build_name }}."
       shell: bash
@@ -481,9 +481,9 @@ jobs:
     - name: Upload Release to HTTPS Source
       id: upload-https-7z
       run: |
-        cd /workspace/refringe/Build/
+        cd /workspace/SPT-AKI/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
         echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ needs.assemble-release.outputs.build_name }}"
       shell: bash
 
@@ -494,13 +494,13 @@ jobs:
         BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
         BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
         TORRENT_NAME="${BASE_NAME}.torrent"
-        TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/refringe/Build/${TORRENT_NAME}" \
+        TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/SPT-AKI/Build/${TORRENT_NAME}" \
           --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
           --tracker "http://open.acgnxtracker.com:80/announce,https://tracker.tamersunion.org:443/announce,http://tracker.renfei.net:8080/announce,udp://tracker.torrent.eu.org:451/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
           --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
           --creator "sp-tarkov.com" \
           --verbose \
-          "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}")
+          "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}")
         MAGNET_LINK=$(echo "${TORF_OUTPUT}" | grep -oP 'Magnet\t\K.*')
         echo "::set-output name=link_magnet::${MAGNET_LINK}"
         echo "::set-output name=torrent_name::${TORRENT_NAME}"
@@ -510,15 +510,15 @@ jobs:
       if: needs.prepare.outputs.build_type == 'release'
       id: upload-https-torrent
       run: |
-        cd /workspace/refringe/Build/
+        cd /workspace/SPT-AKI/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_host
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/refringe/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "UserKnownHostsFile=known_host" -o "StrictHostKeyChecking=yes" "/workspace/SPT-AKI/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
         echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.torrent_create.outputs.torrent_name }}"
       shell: bash
 
     - name: Clean Old HTTPS Source Releases
       run: |
-        cd /workspace/refringe/Build/
+        cd /workspace/SPT-AKI/Build/
         echo "${{ secrets.SFTP_HOST_KEY }}" > known_hosts
 
         # Creating a script for sftp to execute
@@ -564,7 +564,7 @@ jobs:
         mega-https on
         mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-        mega-put -c "/workspace/refringe/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
+        mega-put -c "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
 
         # Generate link and save it.
         EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ needs.assemble-release.outputs.build_name }}" -f)
@@ -618,7 +618,7 @@ jobs:
         MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
         MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
       run: |
-        cd /workspace/refringe/Build/
+        cd /workspace/SPT-AKI/Build/
         UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
         FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
         FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
