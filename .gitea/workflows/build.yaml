@@ -523,7 +523,7 @@ jobs:
         echo "ls" >> sftp_commands.txt
 
         # Fetch a remote list of files
-        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}"" -o "StrictHostKeyChecking=no" -b "sftp_commands.txt" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b "sftp_commands.txt" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
 
         echo "Files listed:"
         echo "$FILE_LIST"
