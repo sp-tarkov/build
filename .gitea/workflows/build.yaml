@@ -4,8 +4,7 @@ on:
   schedule:
     - cron: '* 13 * * *' # Every day at 2pm ET
   push:
-    # main can be removed when actions are available in the sub-project repos
-    branches: [ main, trigger ]
+    branches: [ trigger ]
 
 jobs:
   prepare:
