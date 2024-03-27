@@ -265,6 +265,7 @@ jobs:
     steps:
     - name: Clone
       run: |
+        rm -rf /workspace/SPT-AKI/Build/modules
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_modules }}
           echo "Cloning modules from branch $BRANCH"
@@ -334,6 +335,7 @@ jobs:
     steps:
     - name: Clone
       run: |
+        rm -rf /workspace/SPT-AKI/Build/launcher
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
           BRANCH=${{ needs.prepare.outputs.branch_launcher }}
           echo "Cloning launcher from branch $BRANCH"
