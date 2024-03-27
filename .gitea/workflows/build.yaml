@@ -18,7 +18,7 @@ jobs:
       branch_server: ${{ steps.determine-context.outputs.branch_server }}
       branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
       branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
-      target_tag: ${{ steps.determine-context.outputs.target_tag }}
+      target_tag: ${{ steps.determine-target-tag.outputs.target_tag }}
       build_type: ${{ steps.determine-build-type.outputs.build_type }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
@@ -39,8 +39,27 @@ jobs:
           echo "::set-output name=branch_launcher::3.8.0"
         else
           echo "::set-output name=is_nightly::false"
-          echo "::set-output name=target_tag::3.8.0-BEM-20240323"
         fi
+      shell: bash
+
+    - name: Determine Target Tag
+      id: determine-target-tag
+      if: steps.determine-context.outputs.is_nightly == 'false'
+      run: |
+        rm -rf /workspace/SPT-AKI/Build/trigger
+        if ! git clone https://dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
+          echo "Failed to clone the trigger branch. The branch may not exist."
+          echo "The trigger branch is critical to this workflow."
+          exit 1
+        fi
+        cd /workspace/SPT-AKI/Build/trigger
+        if [ ! -f .gitea/trigger ]; then
+          echo "Failed to find the .gitea/trigger file. It may not exist."
+          echo "The trigger file is critical to this workflow."
+          exit 1
+        fi
+        TAG_NAME=$(cat .gitea/trigger)
+        echo "::set-output name=target_tag::$TAG_NAME"
       shell: bash
 
     - name: Determine Build Type
@@ -50,7 +69,7 @@ jobs:
           # Nightly builds are currently considered a "bleedingmods" type build
           BUILD_TYPE="bleedingmods"
         else
-          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+          TARGET_TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
           TARGET_TAG_UPPER="${TARGET_TAG^^}"
 
           # Debug build by default
@@ -90,7 +109,7 @@ jobs:
             fi
           done
         else
-          TAG="${{ steps.determine-context.outputs.target_tag }}"
+          TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
           REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
           for REPO in "${REPOS[@]}"; do
             echo "Checking for tag $TAG in $REPO..."
@@ -124,7 +143,7 @@ jobs:
         if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
           REF=${{ steps.determine-context.outputs.branch_server }}
         else
-          REF=${{ steps.determine-context.outputs.target_tag }}
+          REF=${{ steps.determine-target-tag.outputs.target_tag }}
         fi
 
         # Fetch and checkout the specific reference (branch or tag)
@@ -159,7 +178,7 @@ jobs:
         if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
           REF=${{ steps.determine-context.outputs.branch_server }}
         else
-          REF=${{ steps.determine-context.outputs.target_tag }}
+          REF=${{ steps.determine-target-tag.outputs.target_tag }}
         fi
 
         # Fetch and checkout the specific reference (branch or tag)
