@@ -2,7 +2,7 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: '* 14 * * *' # Every day at 10am ET
+    - cron: '* 15 * * *' # Every day at 11am ET
   push:
     branches: [ trigger ]
 
@@ -298,8 +298,8 @@ jobs:
     - name: Download Client Module Package
       run: |
         DIR_MANAGED="/workspace/SPT-AKI/Build/modules/project/Shared/Managed"
-        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.zip"
-        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.zip"
+        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.7z"
+        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.7z"
         echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
         mkdir -p "$DIR_MANAGED"
         wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
@@ -316,14 +316,14 @@ jobs:
     - name: Decompress Client Module Package
       run: |
         cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
-        7z x ${{ needs.prepare.outputs.client_version }}.zip -aoa
+        7z x ${{ needs.prepare.outputs.client_version }}.7z -aoa
         echo "Client module package decompressed."
       shell: bash
 
     - name: Delete Client Module Package
       run: |
         cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
-        rm -f ${{ needs.prepare.outputs.client_version }}.zip
+        rm -f ${{ needs.prepare.outputs.client_version }}.7z
         echo "Client module package deleted."
       shell: bash
 
