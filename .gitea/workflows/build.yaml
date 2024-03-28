@@ -382,14 +382,11 @@ jobs:
         retention-days: 1
         overwrite: true
 
-  assemble-release:
+  assemble-and-publish:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
       image: refringe/spt-build-node:1.0.7
-    outputs:
-      base_name: ${{ steps.generate-filename.outputs.base_name }}
-      build_name: ${{ steps.generate-filename.outputs.build_name }}
     steps:
     - name: Clean Directory
       run: |
@@ -470,48 +467,27 @@ jobs:
         echo "::set-output name=build_name::${BASE_NAME}.7z"
       shell: bash
 
-    - name: Artifact Release
-      uses: actions/upload-artifact@v3
-      with:
-        name: release-artifact
-        path: /workspace/SPT-AKI/Build/release
-        compression-level: 0
-        retention-days: 1
-        overwrite: true
-
-  publish-release:
-    needs: [prepare, assemble-release, build-server]
-    runs-on: ubuntu-latest
-    container:
-      image: refringe/spt-build-node:1.0.7
-    steps:
-    - name: Download Release Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: release-artifact
-        path: /workspace/SPT-AKI/Build/release
-
     - name: Compress Release
       run: |
         cd /workspace/SPT-AKI/Build/release
-        7z a -mx=9 -m0=lzma2 "../${{ needs.assemble-release.outputs.build_name }}" ./*
-        echo "Release compressed as ${{ needs.assemble-release.outputs.build_name }}."
+        7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
+        echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
       shell: bash
 
     - name: Upload Release to HTTPS Source
       id: upload-https-7z
       run: |
         cd /workspace/SPT-AKI/Build/
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
-        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ needs.assemble-release.outputs.build_name }}"
+        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
       shell: bash
 
     - name: Create Torrent File
       if: needs.prepare.outputs.build_type == 'release'
       id: torrent_create
       run: |
-        BASE_NAME="${{ needs.assemble-release.outputs.base_name }}"
-        BUILD_NAME="${{ needs.assemble-release.outputs.build_name }}"
+        BASE_NAME="${{ steps.generate-filename.outputs.base_name }}"
+        BUILD_NAME="${{ steps.generate-filename.outputs.build_name }}"
         TORRENT_NAME="${BASE_NAME}.torrent"
         TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/SPT-AKI/Build/${TORRENT_NAME}" \
           --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
@@ -519,7 +495,7 @@ jobs:
           --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
           --creator "sp-tarkov.com" \
           --verbose \
-          "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}")
+          "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}")
         MAGNET_LINK=$(echo "${TORF_OUTPUT}" | grep -oP 'Magnet\t\K.*')
         echo "::set-output name=link_magnet::${MAGNET_LINK}"
         echo "::set-output name=torrent_name::${TORRENT_NAME}"
@@ -581,10 +557,10 @@ jobs:
         mega-https on
         mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-        mega-put -c "/workspace/SPT-AKI/Build/${{ needs.assemble-release.outputs.build_name }}" "/spt-release/${{ needs.assemble-release.outputs.build_name }}"
+        mega-put -c "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
 
         # Generate link and save it.
-        EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ needs.assemble-release.outputs.build_name }}" -f)
+        EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
         LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
         echo "::set-output name=link_mega::${LINK_MEGA}"
 
@@ -625,8 +601,8 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         BUILD_TYPE: ${{ needs.prepare.outputs.build_type }}
-        BASE_NAME: ${{ needs.assemble-release.outputs.base_name }}
-        BUILD_NAME: ${{ needs.assemble-release.outputs.build_name }}
+        BASE_NAME: ${{ steps.generate-filename.outputs.base_name }}
+        BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
         LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
         LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
         LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
