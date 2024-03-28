@@ -2,7 +2,7 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: '* 13 * * *' # Every day at 2pm ET
+    - cron: '* 14 * * *' # Every day at 10am ET
   push:
     branches: [ trigger ]
 
