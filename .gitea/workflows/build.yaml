@@ -209,10 +209,10 @@ jobs:
     container:
       image: refringe/spt-build-node:1.0.7
     outputs:
-      server_commit: ${{ steps.clone.outputs.server_commit }}
+      server_commit: ${{ steps.clone-server.outputs.server_commit }}
     steps:
     - name: Clone
-      id: clone
+      id: clone-server
       run: |
         rm -rf /workspace/SPT-AKI/Build/server
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -269,7 +269,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/server/project/build
-        key: server-build-${{ steps.clone.output.server_commit }}-${{ needs.prepare.outputs.build_type }}
+        key: server-build-${{ steps.clone-server.output.server_commit }}-${{ needs.prepare.outputs.build_type }}
 
     - name: Build Server
       if: steps.cache-server-build.outputs.cache-hit != 'true'
@@ -299,7 +299,7 @@ jobs:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
     - name: Clone
-      id: clone
+      id: clone-modules
       run: |
         rm -rf /workspace/SPT-AKI/Build/modules
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -354,7 +354,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/modules/project/Build
-        key: modules-build-${{ steps.clone.output.modules_commit }}
+        key: modules-build-${{ steps.clone-modules.output.modules_commit }}
 
     - name: Build Modules
       if: steps.cache-modules-build.outputs.cache-hit != 'true'
@@ -382,7 +382,7 @@ jobs:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
     - name: Clone
-      id: clone
+      id: clone-launcher
       run: |
         rm -rf /workspace/SPT-AKI/Build/launcher
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -405,7 +405,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/launcher/project/Build
-        key: launcher-build-${{ steps.clone.output.launcher_commit }}
+        key: launcher-build-${{ steps.clone-launcher.output.launcher_commit }}
 
     - name: Build Launcher
       if: steps.cache-launcher-build.outputs.cache-hit != 'true'
