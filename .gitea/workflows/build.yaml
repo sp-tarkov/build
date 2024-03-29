@@ -122,7 +122,7 @@ jobs:
         echo "::set-output name=proceed::${PROCEED}"
       shell: bash
 
-    - name: Halt Workflow if Necessary
+    - name: Tag Not Found
       if: steps.check-existence.outputs.proceed == 'false'
       run: |
         echo "Required branch/tag not found in one or more repositories, halting workflow."
