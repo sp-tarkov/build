@@ -69,15 +69,7 @@ jobs:
           BUILD_TYPE="bleedingmods"
         else
           TARGET_TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
-
-          # Convert tag for consistent matching
-          TARGET_TAG="${TARGET_TAG##*( )}"    # Remove leading whitespace
-          TARGET_TAG="${TARGET_TAG%%*( )}"    # Remove trailing whitespace
           TARGET_TAG_UPPER="${TARGET_TAG^^}"  # Uppercase
-
-          echo "Extended Globbing Support: $(shopt extglob)"
-          echo "Target tag: '$TARGET_TAG'"
-          echo "Uppercase target tag: '$TARGET_TAG_UPPER'"
 
           # Debug build by default
           # BleedingMods builds have "-BEM" in the target tag
@@ -88,7 +80,7 @@ jobs:
             BUILD_TYPE="bleedingmods"
           elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
             BUILD_TYPE="bleeding"
-          elif [[ "$TARGET_TAG_UPPER" =~ ^(v?\d+\.\d+\.\d+)$ ]]; then
+          elif [[ "$TARGET_TAG_UPPER" =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             BUILD_TYPE="release"
           fi
         fi
