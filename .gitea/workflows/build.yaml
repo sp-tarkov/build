@@ -269,7 +269,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/server/project/build
-        key: server-build-${{ steps.clone-server.output.server_commit }}-${{ needs.prepare.outputs.build_type }}
+        key: server-build-${{ steps.clone-server.outputs.server_commit }}-${{ needs.prepare.outputs.build_type }}
 
     - name: Build Server
       if: steps.cache-server-build.outputs.cache-hit != 'true'
@@ -354,7 +354,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/modules/project/Build
-        key: modules-build-${{ steps.clone-modules.output.modules_commit }}
+        key: modules-build-${{ steps.clone-modules.outputs.modules_commit }}
 
     - name: Build Modules
       if: steps.cache-modules-build.outputs.cache-hit != 'true'
@@ -405,7 +405,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/launcher/project/Build
-        key: launcher-build-${{ steps.clone-launcher.output.launcher_commit }}
+        key: launcher-build-${{ steps.clone-launcher.outputs.launcher_commit }}
 
     - name: Build Launcher
       if: steps.cache-launcher-build.outputs.cache-hit != 'true'
