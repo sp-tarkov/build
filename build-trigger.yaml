@@ -11,7 +11,7 @@ jobs:
     steps:
     - name: Setup Git Config
       run: |
-        git config --global user.email "triggerbot@example.com"
+        git config --global user.email "noreply@sp-tarkov.com"
         git config --global user.name "TriggerBot"
 
     - name: Clone Build Repository
