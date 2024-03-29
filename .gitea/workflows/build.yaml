@@ -265,7 +265,18 @@ jobs:
         npm install
       shell: bash
 
+    - name: Cache Server Build
+      id: cache-server-build
+      uses: actions/cache@v4
+      with:
+        path: |
+          /workspace/SPT-AKI/Build/server/project/build
+        key: server-build-${{ steps.clone.output.server_commit }}
+        restore-keys: |
+          server-build-
+
     - name: Build Server
+      if: steps.cache-server-build.outputs.cache-hit != 'true'
       run: |
         cd /workspace/SPT-AKI/Build/server/project
         BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
