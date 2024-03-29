@@ -46,7 +46,7 @@ jobs:
       if: steps.determine-context.outputs.is_nightly == 'false'
       run: |
         rm -rf /workspace/SPT-AKI/Build/trigger
-        if ! git clone https://dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
+        if ! git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_ACCESS_TOKEN }}@dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
           echo "Failed to clone the trigger branch. The branch may not exist."
           echo "The trigger branch is critical to this workflow."
           exit 1
