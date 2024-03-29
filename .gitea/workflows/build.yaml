@@ -254,8 +254,6 @@ jobs:
         path: |
           /workspace/SPT-AKI/Build/server/project/node_modules
         key: npm-dependencies-${{ hashFiles('/workspace/SPT-AKI/Build/server/project/package.json') }}
-        restore-keys: |
-          npm-dependencies-
 
     - name: Install Dependencies
       if: steps.cache-npm-dependencies.outputs.cache-hit != 'true'
@@ -271,9 +269,7 @@ jobs:
       with:
         path: |
           /workspace/SPT-AKI/Build/server/project/build
-        key: server-build-${{ steps.clone.output.server_commit }}
-        restore-keys: |
-          server-build-
+        key: server-build-${{ steps.clone.output.server_commit }}-${{ needs.prepare.outputs.build_type }}
 
     - name: Build Server
       if: steps.cache-server-build.outputs.cache-hit != 'true'
@@ -359,8 +355,6 @@ jobs:
         path: |
           /workspace/SPT-AKI/Build/modules/project/Build
         key: modules-build-${{ steps.clone.output.modules_commit }}
-        restore-keys: |
-          modules-build-
 
     - name: Build Modules
       if: steps.cache-modules-build.outputs.cache-hit != 'true'
@@ -412,8 +406,6 @@ jobs:
         path: |
           /workspace/SPT-AKI/Build/launcher/project/Build
         key: launcher-build-${{ steps.clone.output.launcher_commit }}
-        restore-keys: |
-          launcher-build-
 
     - name: Build Launcher
       if: steps.cache-launcher-build.outputs.cache-hit != 'true'
