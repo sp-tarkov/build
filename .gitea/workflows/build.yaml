@@ -388,6 +388,7 @@ jobs:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
     - name: Clone
+      id: clone
       run: |
         rm -rf /workspace/SPT-AKI/Build/launcher
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -399,9 +400,23 @@ jobs:
           echo "Cloning launcher from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/launcher
         fi
+
+        cd /workspace/SPT-AKI/Build/launcher
+        echo "::set-output name=launcher_commit::$(git rev-parse --short HEAD)"
       shell: bash
 
+    - name: Cache Launcher Build
+      id: cache-launcher-build
+      uses: actions/cache@v4
+      with:
+        path: |
+          /workspace/SPT-AKI/Build/launcher/project/Build
+        key: launcher-build-${{ steps.clone.output.launcher_commit }}
+        restore-keys: |
+          launcher-build-
+
     - name: Build Launcher
+      if: steps.cache-launcher-build.outputs.cache-hit != 'true'
       run: |
         cd /workspace/SPT-AKI/Build/launcher/project
         dotnet build
