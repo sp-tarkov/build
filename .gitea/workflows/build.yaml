@@ -247,11 +247,21 @@ jobs:
         echo "Last Commit Message:" && git log -1 --pretty=%B
       shell: bash
 
+    - name: Cache NPM Dependencies
+      id: cache-npm-dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          /workspace/SPT-AKI/Build/server/project/node_modules
+        key: npm-dependencies-${{ hashFiles('/workspace/SPT-AKI/Build/server/project/package.json') }}
+        restore-keys: |
+          npm-dependencies-
+
     - name: Install Dependencies
+      if: steps.cache-npm-dependencies.outputs.cache-hit != 'true'
       run: |
         cd /workspace/SPT-AKI/Build/server/project
-        rm -rf package-lock.json node_modules
-        npm cache clean --force
+        rm -rf node_modules
         npm install
       shell: bash
 
