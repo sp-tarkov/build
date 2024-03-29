@@ -303,6 +303,7 @@ jobs:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
     - name: Clone
+      id: clone
       run: |
         rm -rf /workspace/SPT-AKI/Build/modules
         if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
@@ -314,6 +315,9 @@ jobs:
           echo "Cloning modules from tag $TAG"
           git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/modules
         fi
+
+        cd /workspace/SPT-AKI/Build/modules
+        echo "::set-output name=modules_commit::$(git rev-parse --short HEAD)"
       shell: bash
 
     - name: Download Client Module Package
@@ -348,7 +352,18 @@ jobs:
         echo "Client module package deleted."
       shell: bash
 
+    - name: Cache Modules Build
+      id: cache-modules-build
+      uses: actions/cache@v4
+      with:
+        path: |
+          /workspace/SPT-AKI/Build/modules/project/Build
+        key: modules-build-${{ steps.clone.output.modules_commit }}
+        restore-keys: |
+          modules-build-
+
     - name: Build Modules
+      if: steps.cache-modules-build.outputs.cache-hit != 'true'
       run: |
         cd /workspace/SPT-AKI/Build/modules/project
         dotnet build -c Release -p:Version=${{ needs.prepare.outputs.spt_version }}
