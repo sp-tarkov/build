@@ -11,21 +11,9 @@ FROM node:20.11.1-bookworm
 #  - p7zip-full (the goat)
 #  - sshpass (for automated SSH authentication)
 #  - lftp (for automated SFTP commands)
-#  - python3 (for running python scripts)
-#  - python3-pip (for installing python packages)
-#  - python3-venv (for creating python virtual environments)
 #  - vim-common (for xxd command, for file hash process)
 RUN apt-get update && \
     apt-get install -y wget git git-lfs zstd tree jq p7zip-full sshpass python3 python3-pip python3-venv vim-common
-
-# Create a virtual environment for Python packages
-RUN python3 -m venv /opt/venv
-
-# Activate virtual environment and install python applications
-#  - torf-cli (for creating .torrent files)
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --upgrade pip && \
-    pip install torf-cli
 
 # MegaCMD (for uploading to Mega.nz)
 #  - libc-ares2 (MegaCMD dependancy)

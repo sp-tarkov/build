@@ -525,34 +525,6 @@ jobs:
         echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
       shell: bash
 
-    - name: Create Torrent File
-      if: needs.prepare.outputs.build_type == 'release'
-      id: torrent_create
-      run: |
-        BASE_NAME="${{ steps.generate-filename.outputs.base_name }}"
-        BUILD_NAME="${{ steps.generate-filename.outputs.build_name }}"
-        TORRENT_NAME="${BASE_NAME}.torrent"
-        TORF_OUTPUT=$(/opt/venv/bin/torf --yes --out "/workspace/SPT-AKI/Build/${TORRENT_NAME}" \
-          --webseed "${{ steps.upload-https-7z.outputs.link_https }}" \
-          --tracker "http://open.acgnxtracker.com:80/announce,https://tracker.tamersunion.org:443/announce,http://tracker.renfei.net:8080/announce,udp://tracker.torrent.eu.org:451/announce,udp://ec2-18-191-163-220.us-east-2.compute.amazonaws.com:6969/announce" \
-          --comment "Official ${BASE_NAME} release, built by the team at sp-tarkov.com. Have fun!" \
-          --creator "sp-tarkov.com" \
-          --verbose \
-          "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}")
-        MAGNET_LINK=$(echo "${TORF_OUTPUT}" | grep -oP 'Magnet\t\K.*')
-        echo "::set-output name=link_magnet::${MAGNET_LINK}"
-        echo "::set-output name=torrent_name::${TORRENT_NAME}"
-      shell: bash
-
-    - name: Upload Torrent to HTTPS Source
-      if: needs.prepare.outputs.build_type == 'release'
-      id: upload-https-torrent
-      run: |
-        cd /workspace/SPT-AKI/Build/
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ steps.torrent_create.outputs.torrent_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
-        echo "::set-output name=link_torrent::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.torrent_create.outputs.torrent_name }}"
-      shell: bash
-
     - name: Clean Old HTTPS Source Releases
       run: |
         cd /workspace/SPT-AKI/Build/
@@ -568,10 +540,10 @@ jobs:
         echo "$FILE_LIST"
 
         # Filtering and processing the file list
-        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.(7z|torrent)$' | while read filename; do
+        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read filename; do
           echo "Processing file: $filename"
           # Extract date from filename
-          if [[ "$filename" =~ ([0-9]{8})\.(7z|torrent)$ ]]; then
+          if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
             file_date="${BASH_REMATCH[1]}"
             file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
 
@@ -648,7 +620,6 @@ jobs:
         BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
         LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
         LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
-        LINK_TORRENT: ${{ steps.upload-https-torrent.outputs.link_torrent }}
         MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
         MODS_ENABLED_BLEEDINGMODS: ${{ needs.prepare.outputs.mod_enabled_bleedingmods }}
         MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
@@ -695,10 +666,6 @@ jobs:
           {"name": "File Hash", "value": "'"$FILE_HASH"'"},
           {"name": "Primary Download Link", "value": "'"$LINK_MEGA"'"}
         ]'
-        if [ "$BUILD_TYPE" = "release" ]; then
-          fields_json=$(echo "$fields_json" | jq --arg LINK_TORRENT "$LINK_TORRENT" '. += [{"name": "Torrent Link", "value": $LINK_TORRENT}]')
-        fi
-        fields_json=$(echo "$fields_json" | jq --arg LINK_HTTPS "$LINK_HTTPS" '. += [{"name": "Fallback Mirror", "value": $LINK_HTTPS}]')
 
         payload=$(jq -n \
           --argjson fields "$fields_json" \
