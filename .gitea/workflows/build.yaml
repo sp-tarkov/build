@@ -658,6 +658,12 @@ jobs:
           fi
         fi
 
+        if [[ "$MODS" == "true" ]]; then
+          MODS="enabled"
+        elif [[ "$MODS" == "false" ]]; then
+          MODS="disabled"
+        fi
+
         fields_json='[
           {"name": "Name", "value": "'"$BASE_NAME"'"},
           {"name": "Build Type", "value": "'"$BUILD_TYPE"'", "inline": true},
