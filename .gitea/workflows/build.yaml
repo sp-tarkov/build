@@ -659,13 +659,13 @@ jobs:
         fi
 
         fields_json='[
-          {"name": "Name", "value": $BASE_NAME},
-          {"name": "Build Type", "value": $BUILD_TYPE, "inline": true},
-          {"name": "Mods Enabled", "value": $MODS, "inline": true},
-          {"name": "File Size", "value": $FILE_SIZE_MB, "inline": true},
-          {"name": "File Hash", "value": $FILE_HASH},
-          {"name": "Download", "value": $LINK_MEGA}
-          {"name": "Mirror", "value": $LINK_HTTPS}
+          {"name": "Name", "value": "'"$BASE_NAME"'"},
+          {"name": "Build Type", "value": "'"$BUILD_TYPE"'", "inline": true},
+          {"name": "Mods", "value": "'"$MODS"'", "inline": true},
+          {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
+          {"name": "File Hash", "value": "'"$FILE_HASH"'"},
+          {"name": "Download", "value": "'"$LINK_MEGA"'"}
+          {"name": "Mirror", "value": "'"$LINK_HTTPS"'"}
         ]'
 
         payload=$(jq -n \
