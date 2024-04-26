@@ -525,7 +525,7 @@ jobs:
         shell: bash
 
       - name: R2 Upload
-        if: steps.determine-build-type.outputs.build_type == 'release'
+        if: needs.prepare.outputs.build_type == 'release'
         run: |
           SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
           CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
