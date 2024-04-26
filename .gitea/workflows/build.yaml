@@ -2,15 +2,15 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: '* 19 * * *' # Every day at 3pm ET
+    - cron: "* 19 * * *" # Every day at 3pm ET
   push:
-    branches: [ trigger ]
+    branches: [trigger]
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.7
+      image: refringe/spt-build-node:1.0.8
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
@@ -27,269 +27,269 @@ jobs:
       mod_enabled_release: ${{ steps.mod-config.outputs.release }}
 
     steps:
-    - name: Determine Build Context
-      id: determine-context
-      run: |
-        echo "Determining build context..."
-        if [[ "${{ github.event_name }}" == "schedule" ]]; then
-          echo "::set-output name=is_nightly::true"
-          echo "::set-output name=branch_server::3.8.1-DEV"
-          echo "::set-output name=branch_modules::3.8.1-DEV"
-          echo "::set-output name=branch_launcher::3.8.1-DEV"
-        else
-          echo "::set-output name=is_nightly::false"
-        fi
-      shell: bash
-
-    - name: Determine Target Tag
-      id: determine-target-tag
-      if: steps.determine-context.outputs.is_nightly == 'false'
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/trigger
-        if ! git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_ACCESS_TOKEN }}@dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
-          echo "Failed to clone the trigger branch. The branch may not exist."
-          echo "The trigger branch is critical to this workflow."
-          exit 1
-        fi
-        cd /workspace/SPT-AKI/Build/trigger
-        if [ ! -f .gitea/trigger ]; then
-          echo "Failed to find the .gitea/trigger file. It may not exist."
-          echo "The trigger file is critical to this workflow."
-          exit 1
-        fi
-        TAG_NAME=$(cat .gitea/trigger)
-        echo "::set-output name=target_tag::$TAG_NAME"
-      shell: bash
-
-    - name: Determine Build Type
-      id: determine-build-type
-      run: |
-        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-          # Nightly builds are currently considered a "bleedingmods" type build
-          BUILD_TYPE="bleedingmods"
-        else
-          TARGET_TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
-          TARGET_TAG_UPPER="${TARGET_TAG^^}"  # Uppercase
-
-          # Debug build by default
-          # BleedingMods builds have "-BEM" in the target tag
-          # Bleeding builds have "-BE" in the target tag
-          # Release tags follow basic semantic versioning
-          BUILD_TYPE="debug"
-          if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
-            BUILD_TYPE="bleedingmods"
-          elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
-            BUILD_TYPE="bleeding"
-          elif [[ "$TARGET_TAG_UPPER" =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            BUILD_TYPE="release"
+      - name: Determine Build Context
+        id: determine-context
+        run: |
+          echo "Determining build context..."
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "::set-output name=is_nightly::true"
+            echo "::set-output name=branch_server::3.8.1-DEV"
+            echo "::set-output name=branch_modules::3.8.1-DEV"
+            echo "::set-output name=branch_launcher::3.8.1-DEV"
+          else
+            echo "::set-output name=is_nightly::false"
           fi
-        fi
-        echo "::set-output name=build_type::${BUILD_TYPE}"
-      shell: bash
+        shell: bash
 
-    - name: Check Existence
-      id: check-existence
-      run: |
-        PROCEED="true"
-        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-          declare -A BRANCHES=(
-            [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
-            [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
-            [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
-          )
-          for REPO_NAME in "${!BRANCHES[@]}"; do
-            REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
-            BRANCH="${BRANCHES[$REPO_NAME]##*@}"
-            echo "Checking for branch $BRANCH in $REPO_NAME..."
-            if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
-              echo "Branch $BRANCH not found in $REPO_URL"
-              PROCEED="false"
-              break
+      - name: Determine Target Tag
+        id: determine-target-tag
+        if: steps.determine-context.outputs.is_nightly == 'false'
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/trigger
+          if ! git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_ACCESS_TOKEN }}@dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
+            echo "Failed to clone the trigger branch. The branch may not exist."
+            echo "The trigger branch is critical to this workflow."
+            exit 1
+          fi
+          cd /workspace/SPT-AKI/Build/trigger
+          if [ ! -f .gitea/trigger ]; then
+            echo "Failed to find the .gitea/trigger file. It may not exist."
+            echo "The trigger file is critical to this workflow."
+            exit 1
+          fi
+          TAG_NAME=$(cat .gitea/trigger)
+          echo "::set-output name=target_tag::$TAG_NAME"
+        shell: bash
+
+      - name: Determine Build Type
+        id: determine-build-type
+        run: |
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            # Nightly builds are currently considered a "bleedingmods" type build
+            BUILD_TYPE="bleedingmods"
+          else
+            TARGET_TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
+            TARGET_TAG_UPPER="${TARGET_TAG^^}"  # Uppercase
+
+            # Debug build by default
+            # BleedingMods builds have "-BEM" in the target tag
+            # Bleeding builds have "-BE" in the target tag
+            # Release tags follow basic semantic versioning
+            BUILD_TYPE="debug"
+            if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
+              BUILD_TYPE="bleedingmods"
+            elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
+              BUILD_TYPE="bleeding"
+            elif [[ "$TARGET_TAG_UPPER" =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              BUILD_TYPE="release"
             fi
-          done
-        else
-          TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
-          REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
-          for REPO in "${REPOS[@]}"; do
-            echo "Checking for tag $TAG in $REPO..."
-            if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
-              echo "Tag $TAG not found in $REPO"
-              PROCEED="false"
-              break
-            fi
-          done
-        fi
-        echo "::set-output name=proceed::${PROCEED}"
-      shell: bash
+          fi
+          echo "::set-output name=build_type::${BUILD_TYPE}"
+        shell: bash
 
-    - name: Tag Not Found
-      if: steps.check-existence.outputs.proceed == 'false'
-      run: |
-        echo "Required branch/tag not found in one or more repositories, halting workflow."
-        exit 1
-      shell: bash
+      - name: Check Existence
+        id: check-existence
+        run: |
+          PROCEED="true"
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            declare -A BRANCHES=(
+              [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
+              [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
+              [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
+            )
+            for REPO_NAME in "${!BRANCHES[@]}"; do
+              REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
+              BRANCH="${BRANCHES[$REPO_NAME]##*@}"
+              echo "Checking for branch $BRANCH in $REPO_NAME..."
+              if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
+                echo "Branch $BRANCH not found in $REPO_URL"
+                PROCEED="false"
+                break
+              fi
+            done
+          else
+            TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
+            REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
+            for REPO in "${REPOS[@]}"; do
+              echo "Checking for tag $TAG in $REPO..."
+              if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
+                echo "Tag $TAG not found in $REPO"
+                PROCEED="false"
+                break
+              fi
+            done
+          fi
+          echo "::set-output name=proceed::${PROCEED}"
+        shell: bash
 
-    - name: Extract Versions
-      id: versions
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/server-core
-        git init /workspace/SPT-AKI/Build/server-core
-        cd /workspace/SPT-AKI/Build/server-core
-        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
-        git config core.sparseCheckout true
-        echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
+      - name: Tag Not Found
+        if: steps.check-existence.outputs.proceed == 'false'
+        run: |
+          echo "Required branch/tag not found in one or more repositories, halting workflow."
+          exit 1
+        shell: bash
 
-        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-          REF=${{ steps.determine-context.outputs.branch_server }}
-        else
-          REF=${{ steps.determine-target-tag.outputs.target_tag }}
-        fi
+      - name: Extract Versions
+        id: versions
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/server-core
+          git init /workspace/SPT-AKI/Build/server-core
+          cd /workspace/SPT-AKI/Build/server-core
+          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+          git config core.sparseCheckout true
+          echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
 
-        # Fetch and checkout the specific reference (branch or tag)
-        git fetch --depth=1 origin "${REF}"
-        git checkout FETCH_HEAD
-        ls -la project/assets/configs
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            REF=${{ steps.determine-context.outputs.branch_server }}
+          else
+            REF=${{ steps.determine-target-tag.outputs.target_tag }}
+          fi
 
-        # Extract versions from core.json
-        cd project/assets/configs
-        SPT_VERSION=$(jq -r '.akiVersion' core.json)
-        FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
-        CLIENT_VERSION=${FULL_VERSION##*.}
+          # Fetch and checkout the specific reference (branch or tag)
+          git fetch --depth=1 origin "${REF}"
+          git checkout FETCH_HEAD
+          ls -la project/assets/configs
 
-        echo "::set-output name=client_version::${CLIENT_VERSION}"
-        echo "::set-output name=spt_version::${SPT_VERSION}"
-      shell: bash
+          # Extract versions from core.json
+          cd project/assets/configs
+          SPT_VERSION=$(jq -r '.akiVersion' core.json)
+          FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+          CLIENT_VERSION=${FULL_VERSION##*.}
 
-    - name: Extract Mod Configurations
-      id: mod-config
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/server-mods-config
-        git init /workspace/SPT-AKI/Build/server-mods-config
-        cd /workspace/SPT-AKI/Build/server-mods-config
-        git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
-        git config core.sparseCheckout true
+          echo "::set-output name=client_version::${CLIENT_VERSION}"
+          echo "::set-output name=spt_version::${SPT_VERSION}"
+        shell: bash
 
-        echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
-        echo "project/src/ide/BleedingEdgeModsEntry.ts" >> .git/info/sparse-checkout
-        echo "project/src/ide/DebugEntry.ts" >> .git/info/sparse-checkout
-        echo "project/src/ide/ReleaseEntry.ts" >> .git/info/sparse-checkout
+      - name: Extract Mod Configurations
+        id: mod-config
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/server-mods-config
+          git init /workspace/SPT-AKI/Build/server-mods-config
+          cd /workspace/SPT-AKI/Build/server-mods-config
+          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+          git config core.sparseCheckout true
 
-        if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-          REF=${{ steps.determine-context.outputs.branch_server }}
-        else
-          REF=${{ steps.determine-target-tag.outputs.target_tag }}
-        fi
+          echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
+          echo "project/src/ide/BleedingEdgeModsEntry.ts" >> .git/info/sparse-checkout
+          echo "project/src/ide/DebugEntry.ts" >> .git/info/sparse-checkout
+          echo "project/src/ide/ReleaseEntry.ts" >> .git/info/sparse-checkout
 
-        # Fetch and checkout the specific reference (branch or tag)
-        git fetch --depth=1 origin "${REF}"
-        git checkout FETCH_HEAD
-        ls -la project/src/ide
+          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
+            REF=${{ steps.determine-context.outputs.branch_server }}
+          else
+            REF=${{ steps.determine-target-tag.outputs.target_tag }}
+          fi
 
-        # Function to parse G_MODS_ENABLED value
-        parse_mods_enabled() {
-          grep 'G_MODS_ENABLED' $1 | sed -e 's/.*G_MODS_ENABLED\s*=\s*\(.*\);/\1/'
-        }
+          # Fetch and checkout the specific reference (branch or tag)
+          git fetch --depth=1 origin "${REF}"
+          git checkout FETCH_HEAD
+          ls -la project/src/ide
 
-        # Extract the configuration options
-        MODS_BLEEDING=$(parse_mods_enabled "project/src/ide/BleedingEdgeEntry.ts")
-        MODS_BLEEDINGMODS=$(parse_mods_enabled "project/src/ide/BleedingEdgeModsEntry.ts")
-        MODS_DEBUG=$(parse_mods_enabled "project/src/ide/DebugEntry.ts")
-        MODS_RELEASE=$(parse_mods_enabled "project/src/ide/ReleaseEntry.ts")
+          # Function to parse G_MODS_ENABLED value
+          parse_mods_enabled() {
+            grep 'G_MODS_ENABLED' $1 | sed -e 's/.*G_MODS_ENABLED\s*=\s*\(.*\);/\1/'
+          }
 
-        echo "::set-output name=bleeding::${MODS_BLEEDING}"
-        echo "::set-output name=bleedingmods::${MODS_BLEEDINGMODS}"
-        echo "::set-output name=debug::${MODS_DEBUG}"
-        echo "::set-output name=release::${MODS_RELEASE}"
-      shell: bash
+          # Extract the configuration options
+          MODS_BLEEDING=$(parse_mods_enabled "project/src/ide/BleedingEdgeEntry.ts")
+          MODS_BLEEDINGMODS=$(parse_mods_enabled "project/src/ide/BleedingEdgeModsEntry.ts")
+          MODS_DEBUG=$(parse_mods_enabled "project/src/ide/DebugEntry.ts")
+          MODS_RELEASE=$(parse_mods_enabled "project/src/ide/ReleaseEntry.ts")
+
+          echo "::set-output name=bleeding::${MODS_BLEEDING}"
+          echo "::set-output name=bleedingmods::${MODS_BLEEDINGMODS}"
+          echo "::set-output name=debug::${MODS_DEBUG}"
+          echo "::set-output name=release::${MODS_RELEASE}"
+        shell: bash
 
   build-server:
     needs: [prepare]
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.7
+      image: refringe/spt-build-node:1.0.8
     outputs:
       server_commit: ${{ steps.clone-server.outputs.server_commit }}
     steps:
-    - name: Clone
-      id: clone-server
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/server
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          BRANCH=${{ needs.prepare.outputs.branch_server }}
-          echo "Cloning branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/server
-        else
-          TAG=${{ needs.prepare.outputs.target_tag }}
-          echo "Cloning tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/server
-        fi
+      - name: Clone
+        id: clone-server
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/server
+          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            BRANCH=${{ needs.prepare.outputs.branch_server }}
+            echo "Cloning branch $BRANCH"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/server
+          else
+            TAG=${{ needs.prepare.outputs.target_tag }}
+            echo "Cloning tag $TAG"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/server
+          fi
 
-        cd /workspace/SPT-AKI/Build/server
-        echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
-      shell: bash
+          cd /workspace/SPT-AKI/Build/server
+          echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
+        shell: bash
 
-    - name: Pull LFS Files
-      run: |
-        cd /workspace/SPT-AKI/Build/server
-        git lfs pull && git lfs ls-files
-      shell: bash
+      - name: Pull LFS Files
+        run: |
+          cd /workspace/SPT-AKI/Build/server
+          git lfs pull && git lfs ls-files
+        shell: bash
 
-    - name: Runner Debug Information
-      run: |
-        cd /workspace/SPT-AKI/Build/server
-        echo "Git version: $(git --version)"
-        echo "Git LFS version: $(git-lfs --version)"
-        echo "Node.js version: $(node --version)"
-        echo "NPM version: $(npm --version)"
-        echo "Latest Commit Hash: $(git rev-parse HEAD)"
-        echo "Associated Tags: $(git tag --contains HEAD)"
-        echo "Last Commit Message:" && git log -1 --pretty=%B
-      shell: bash
+      - name: Runner Debug Information
+        run: |
+          cd /workspace/SPT-AKI/Build/server
+          echo "Git version: $(git --version)"
+          echo "Git LFS version: $(git-lfs --version)"
+          echo "Node.js version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Latest Commit Hash: $(git rev-parse HEAD)"
+          echo "Associated Tags: $(git tag --contains HEAD)"
+          echo "Last Commit Message:" && git log -1 --pretty=%B
+        shell: bash
 
-    - name: Cache NPM Dependencies
-      id: cache-npm-dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          /workspace/SPT-AKI/Build/server/project/node_modules
-        key: npm-dependencies-${{ hashFiles('/workspace/SPT-AKI/Build/server/project/package.json') }}
+      - name: Cache NPM Dependencies
+        id: cache-npm-dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /workspace/SPT-AKI/Build/server/project/node_modules
+          key: npm-dependencies-${{ hashFiles('/workspace/SPT-AKI/Build/server/project/package.json') }}
 
-    - name: Install Dependencies
-      if: steps.cache-npm-dependencies.outputs.cache-hit != 'true'
-      run: |
-        cd /workspace/SPT-AKI/Build/server/project
-        rm -rf node_modules
-        npm install
-      shell: bash
+      - name: Install Dependencies
+        if: steps.cache-npm-dependencies.outputs.cache-hit != 'true'
+        run: |
+          cd /workspace/SPT-AKI/Build/server/project
+          rm -rf node_modules
+          npm install
+        shell: bash
 
-    - name: Cache Server Build
-      id: cache-server-build
-      uses: actions/cache@v4
-      with:
-        path: |
-          /workspace/SPT-AKI/Build/server/project/build
-        key: server-build-${{ steps.clone-server.outputs.server_commit }}-${{ needs.prepare.outputs.build_type }}
+      - name: Cache Server Build
+        id: cache-server-build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /workspace/SPT-AKI/Build/server/project/build
+          key: server-build-${{ steps.clone-server.outputs.server_commit }}-${{ needs.prepare.outputs.build_type }}
 
-    - name: Build Server
-      if: steps.cache-server-build.outputs.cache-hit != 'true'
-      run: |
-        cd /workspace/SPT-AKI/Build/server/project
-        BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
-        echo "Running build for $BUILD_TYPE"
-        npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
-        printf "\nBuilt!\n\n"
-        tree -C /workspace/SPT-AKI/Build/server/project/build
-      shell: bash
+      - name: Build Server
+        if: steps.cache-server-build.outputs.cache-hit != 'true'
+        run: |
+          cd /workspace/SPT-AKI/Build/server/project
+          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          echo "Running build for $BUILD_TYPE"
+          npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
+          printf "\nBuilt!\n\n"
+          tree -C /workspace/SPT-AKI/Build/server/project/build
+        shell: bash
 
-    - name: Artifact Server
-      uses: actions/upload-artifact@v3
-      with:
-        name: server-artifact
-        path: /workspace/SPT-AKI/Build/server/project/build/
-        compression-level: 0
-        retention-days: 1
-        overwrite: true
+      - name: Artifact Server
+        uses: actions/upload-artifact@v3
+        with:
+          name: server-artifact
+          path: /workspace/SPT-AKI/Build/server/project/build/
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
 
   build-modules:
     needs: [prepare]
@@ -298,81 +298,81 @@ jobs:
     container:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
-    - name: Clone
-      id: clone-modules
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/modules
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          BRANCH=${{ needs.prepare.outputs.branch_modules }}
-          echo "Cloning modules from branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/modules
-        else
-          TAG=${{ needs.prepare.outputs.target_tag }}
-          echo "Cloning modules from tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/modules
-        fi
+      - name: Clone
+        id: clone-modules
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/modules
+          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            BRANCH=${{ needs.prepare.outputs.branch_modules }}
+            echo "Cloning modules from branch $BRANCH"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/modules
+          else
+            TAG=${{ needs.prepare.outputs.target_tag }}
+            echo "Cloning modules from tag $TAG"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/modules
+          fi
 
-        cd /workspace/SPT-AKI/Build/modules
-        echo "::set-output name=modules_commit::$(git rev-parse --short HEAD)"
-      shell: bash
+          cd /workspace/SPT-AKI/Build/modules
+          echo "::set-output name=modules_commit::$(git rev-parse --short HEAD)"
+        shell: bash
 
-    - name: Download Client Module Package
-      run: |
-        DIR_MANAGED="/workspace/SPT-AKI/Build/modules/project/Shared/Managed"
-        DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.7z"
-        DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.7z"
-        echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
-        mkdir -p "$DIR_MANAGED"
-        wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
-          echo "Failed to download the module package."
-          exit 1
-        }
-        if [ ! -s "$DOWNLOAD_PATH" ]; then
-          echo "The module package does not exist or is empty."
-          exit 1
-        fi
-        echo "Download Successful: $DOWNLOAD_PATH"
-      shell: bash
+      - name: Download Client Module Package
+        run: |
+          DIR_MANAGED="/workspace/SPT-AKI/Build/modules/project/Shared/Managed"
+          DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.7z"
+          DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.7z"
+          echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
+          mkdir -p "$DIR_MANAGED"
+          wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
+            echo "Failed to download the module package."
+            exit 1
+          }
+          if [ ! -s "$DOWNLOAD_PATH" ]; then
+            echo "The module package does not exist or is empty."
+            exit 1
+          fi
+          echo "Download Successful: $DOWNLOAD_PATH"
+        shell: bash
 
-    - name: Decompress Client Module Package
-      run: |
-        cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
-        7z x ${{ needs.prepare.outputs.client_version }}.7z -aoa
-        echo "Client module package decompressed."
-      shell: bash
+      - name: Decompress Client Module Package
+        run: |
+          cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
+          7z x ${{ needs.prepare.outputs.client_version }}.7z -aoa
+          echo "Client module package decompressed."
+        shell: bash
 
-    - name: Delete Client Module Package
-      run: |
-        cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
-        rm -f ${{ needs.prepare.outputs.client_version }}.7z
-        echo "Client module package deleted."
-      shell: bash
+      - name: Delete Client Module Package
+        run: |
+          cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
+          rm -f ${{ needs.prepare.outputs.client_version }}.7z
+          echo "Client module package deleted."
+        shell: bash
 
-    - name: Cache Modules Build
-      id: cache-modules-build
-      uses: actions/cache@v4
-      with:
-        path: |
-          /workspace/SPT-AKI/Build/modules/project/Build
-        key: modules-build-${{ steps.clone-modules.outputs.modules_commit }}
+      - name: Cache Modules Build
+        id: cache-modules-build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /workspace/SPT-AKI/Build/modules/project/Build
+          key: modules-build-${{ steps.clone-modules.outputs.modules_commit }}
 
-    - name: Build Modules
-      if: steps.cache-modules-build.outputs.cache-hit != 'true'
-      run: |
-        cd /workspace/SPT-AKI/Build/modules/project
-        dotnet build -c Release -p:Version=${{ needs.prepare.outputs.spt_version }}
-        printf "\nBuilt!\n\n"
-        tree /workspace/SPT-AKI/Build/modules/project/Build
-      shell: bash
+      - name: Build Modules
+        if: steps.cache-modules-build.outputs.cache-hit != 'true'
+        run: |
+          cd /workspace/SPT-AKI/Build/modules/project
+          dotnet build -c Release -p:Version=${{ needs.prepare.outputs.spt_version }}
+          printf "\nBuilt!\n\n"
+          tree /workspace/SPT-AKI/Build/modules/project/Build
+        shell: bash
 
-    - name: Artifact Modules
-      uses: actions/upload-artifact@v3
-      with:
-        name: modules-artifact
-        path: /workspace/SPT-AKI/Build/modules/project/Build
-        compression-level: 0
-        retention-days: 1
-        overwrite: true
+      - name: Artifact Modules
+        uses: actions/upload-artifact@v3
+        with:
+          name: modules-artifact
+          path: /workspace/SPT-AKI/Build/modules/project/Build
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
 
   build-launcher:
     needs: [prepare]
@@ -381,328 +381,379 @@ jobs:
     container:
       image: refringe/spt-build-dotnet:1.0.0
     steps:
-    - name: Clone
-      id: clone-launcher
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/launcher
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          BRANCH=${{ needs.prepare.outputs.branch_launcher }}
-          echo "Cloning launcher from branch $BRANCH"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/launcher
-        else
-          TAG=${{ needs.prepare.outputs.target_tag }}
-          echo "Cloning launcher from tag $TAG"
-          git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/launcher
-        fi
+      - name: Clone
+        id: clone-launcher
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/launcher
+          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            BRANCH=${{ needs.prepare.outputs.branch_launcher }}
+            echo "Cloning launcher from branch $BRANCH"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/launcher
+          else
+            TAG=${{ needs.prepare.outputs.target_tag }}
+            echo "Cloning launcher from tag $TAG"
+            git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/launcher
+          fi
 
-        cd /workspace/SPT-AKI/Build/launcher
-        echo "::set-output name=launcher_commit::$(git rev-parse --short HEAD)"
-      shell: bash
+          cd /workspace/SPT-AKI/Build/launcher
+          echo "::set-output name=launcher_commit::$(git rev-parse --short HEAD)"
+        shell: bash
 
-    - name: Cache Launcher Build
-      id: cache-launcher-build
-      uses: actions/cache@v4
-      with:
-        path: |
-          /workspace/SPT-AKI/Build/launcher/project/Build
-        key: launcher-build-${{ steps.clone-launcher.outputs.launcher_commit }}
+      - name: Cache Launcher Build
+        id: cache-launcher-build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /workspace/SPT-AKI/Build/launcher/project/Build
+          key: launcher-build-${{ steps.clone-launcher.outputs.launcher_commit }}
 
-    - name: Build Launcher
-      if: steps.cache-launcher-build.outputs.cache-hit != 'true'
-      run: |
-        cd /workspace/SPT-AKI/Build/launcher/project
-        dotnet build
-        printf "\nBuilt!\n\n"
-        tree /workspace/SPT-AKI/Build/launcher/project/Build
-      shell: bash
+      - name: Build Launcher
+        if: steps.cache-launcher-build.outputs.cache-hit != 'true'
+        run: |
+          cd /workspace/SPT-AKI/Build/launcher/project
+          dotnet build
+          printf "\nBuilt!\n\n"
+          tree /workspace/SPT-AKI/Build/launcher/project/Build
+        shell: bash
 
-    - name: Artifact Launcher
-      uses: actions/upload-artifact@v3
-      with:
-        name: launcher-artifact
-        path: /workspace/SPT-AKI/Build/launcher/project/Build
-        compression-level: 0
-        retention-days: 1
-        overwrite: true
+      - name: Artifact Launcher
+        uses: actions/upload-artifact@v3
+        with:
+          name: launcher-artifact
+          path: /workspace/SPT-AKI/Build/launcher/project/Build
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
 
   assemble-and-publish:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.7
+      image: refringe/spt-build-node:1.0.8
     steps:
-    - name: Clean Directory
-      run: |
-        rm -rf /workspace/SPT-AKI/Build/release /workspace/SPT-AKI/Build/build
-        mkdir -p /workspace/SPT-AKI/Build/release
-      shell: bash
+      - name: Clean Directory
+        run: |
+          rm -rf /workspace/SPT-AKI/Build/release /workspace/SPT-AKI/Build/build
+          mkdir -p /workspace/SPT-AKI/Build/release
+        shell: bash
 
-    - name: Download Server Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: server-artifact
-        path: /workspace/SPT-AKI/Build/release/
+      - name: Download Server Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: server-artifact
+          path: /workspace/SPT-AKI/Build/release/
 
-    - name: Download Modules Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: modules-artifact
-        path: /workspace/SPT-AKI/Build/release/
+      - name: Download Modules Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: modules-artifact
+          path: /workspace/SPT-AKI/Build/release/
 
-    - name: Download Launcher Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: launcher-artifact
-        path: /workspace/SPT-AKI/Build/release/
+      - name: Download Launcher Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: launcher-artifact
+          path: /workspace/SPT-AKI/Build/release/
 
-    - name: Clone Build Project
-      uses: actions/checkout@v3
-      with:
-        path: /workspace/SPT-AKI/Build/build
+      - name: Clone Build Project
+        uses: actions/checkout@v3
+        with:
+          path: /workspace/SPT-AKI/Build/build
 
-    - name: Merge Static Assets and Dynamic Files
-      run: cp -rvf /workspace/SPT-AKI/Build/build/static-assets/* /workspace/SPT-AKI/Build/release/
-      shell: bash
+      - name: Merge Static Assets and Dynamic Files
+        run: cp -rvf /workspace/SPT-AKI/Build/build/static-assets/* /workspace/SPT-AKI/Build/release/
+        shell: bash
 
-    - name: List Release Contents
-      run: tree /workspace/SPT-AKI/Build/release
-      shell: bash
+      - name: List Release Contents
+        run: tree /workspace/SPT-AKI/Build/release
+        shell: bash
 
-    - name: Generate Release Filename
-      id: generate-filename
-      run: |
-        BUILD_TYPE=${{ needs.prepare.outputs.build_type }}
-        SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
-        CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
-        SERVER_COMMIT=${{ needs.build-server.outputs.server_commit }}
-        TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
-        DATE=$(date +%Y%m%d)
+      - name: Generate Release Filename
+        id: generate-filename
+        run: |
+          BUILD_TYPE=${{ needs.prepare.outputs.build_type }}
+          SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
+          CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
+          SERVER_COMMIT=${{ needs.build-server.outputs.server_commit }}
+          TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
+          DATE=$(date +%Y%m%d)
 
-        # Conditionally format the BASE_NAME based on BUILD_TYPE and if it's a nightly build
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
-        else
-          # Make BUILD_TYPE and TARGET_TAG uppercase
-          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-          UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
-
-          if [ "$BUILD_TYPE" = "release" ]; then
-            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
+          # Conditionally format the BASE_NAME based on BUILD_TYPE and if it's a nightly build
+          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
           else
-            # For debug and non-nightly-bleeding builds, include either TAG_PART or DATE, but not both
-            # Determine TAG_PART based on TARGET_TAG structure
-            TAG_PART=""
-            if [[ "$UPPER_TARGET_TAG" == *-*-* ]]; then
-              SUFFIX="${UPPER_TARGET_TAG##*-}"
-              if [ "$SUFFIX" != "$UPPER_TARGET_TAG" ]; then
-                TAG_PART="-${SUFFIX}"
+            # Make BUILD_TYPE and TARGET_TAG uppercase
+            UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+            UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
+
+            if [ "$BUILD_TYPE" = "release" ]; then
+              BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
+            else
+              # For debug and non-nightly-bleeding builds, include either TAG_PART or DATE, but not both
+              # Determine TAG_PART based on TARGET_TAG structure
+              TAG_PART=""
+              if [[ "$UPPER_TARGET_TAG" == *-*-* ]]; then
+                SUFFIX="${UPPER_TARGET_TAG##*-}"
+                if [ "$SUFFIX" != "$UPPER_TARGET_TAG" ]; then
+                  TAG_PART="-${SUFFIX}"
+                fi
+              fi
+              if [ -n "$TAG_PART" ]; then
+                BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}${TAG_PART}"
+              else
+                BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
               fi
             fi
-            if [ -n "$TAG_PART" ]; then
-              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}${TAG_PART}"
-            else
-              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
-            fi
           fi
-        fi
 
-        echo "::set-output name=base_name::${BASE_NAME}"
-        echo "::set-output name=build_name::${BASE_NAME}.7z"
-      shell: bash
+          echo "::set-output name=base_name::${BASE_NAME}"
+          echo "::set-output name=build_name::${BASE_NAME}.7z"
+        shell: bash
 
-    - name: Compress Release
-      run: |
-        cd /workspace/SPT-AKI/Build/release
-        7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
-        echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
-      shell: bash
+      - name: Compress Release
+        id: compress-release
+        run: |
+          cd /workspace/SPT-AKI/Build/release
+          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
+          echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
 
-    - name: Upload Release to HTTPS Source
-      id: upload-https-7z
-      run: |
-        cd /workspace/SPT-AKI/Build/
-        sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
-        echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
-      shell: bash
+          echo "::set-output name=base_name::${BASE_NAME}"
+          echo "::set-output name=build_name::${BASE_NAME}.7z"
 
-    - name: Clean Old HTTPS Source Releases
-      run: |
-        cd /workspace/SPT-AKI/Build/
+          FILE_SIZE_MB=$(stat -c %s "${{ steps.generate-filename.outputs.build_name }}" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
+          FILE_HASH=$(md5sum "${{ steps.generate-filename.outputs.build_name }}" | awk '{print $1}' | xxd -r -p | base64)
 
-        # Creating a script for sftp to execute
-        echo "cd /public/builds" > sftp_commands.txt
-        echo "ls" >> sftp_commands.txt
+          echo "::set-output name=file_size_mb::${FILE_SIZE_MB}"
+          echo "::set-output name=file_hash::${FILE_HASH}"
+        shell: bash
 
-        # Fetch a remote list of files
-        FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b "sftp_commands.txt" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+      - name: R2 Upload
+        if: steps.determine-build-type.outputs.build_type == 'release'
+        run: |
+          SPT_VERSION=${{ needs.prepare.outputs.spt_version }}
+          CLIENT_VERSION=${{ needs.prepare.outputs.client_version }}
+          FILE_HASH=${{ steps.compress-release.outputs.file_hash }}
 
-        echo "Files listed:"
-        echo "$FILE_LIST"
+          cd /workspace/SPT-AKI/Build/release
 
-        # Filtering and processing the file list
-        echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read filename; do
-          echo "Processing file: $filename"
-          # Extract date from filename
-          if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
-            file_date="${BASH_REMATCH[1]}"
-            file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+          # Configure Rclone
+          echo '[r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          region = auto
+          endpoint = ${{ secrets.R2_ENDPOINT }}
+          acl = public-read' > rclone.conf
 
-            current_date=$(date +%s)
-            limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
+          # Generate JSON file
+          echo '{
+            "AkiVersion": "${SPT_VERSION}",
+            "ClientVersion": "${CLIENT_VERSION}",
+            "Mirrors": [{
+              "DownloadUrl": "${{ secrets.R2_FRONT }}/${{ steps.generate-filename.outputs.build_name }}",
+              "Hash": "${FILE_HASH}"
+            }]
+          }' > release.json
 
-            if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-              echo "Marked for deletion: $filename"
-              echo "rm \"/public/builds/$filename\"" >> delete_commands.txt
+          rclone --version
+
+          # Remove old 7z files from the bucket
+          rclone delete r2:/${{ secrets.R2_BUCKET_NAME }}/*.7z --config rclone.conf
+
+          # Upload the file using rclone with the above config
+          rclone copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:/${{ secrets.R2_BUCKET_NAME }} --config rclone.conf
+
+          # Upload the JSON file using rclone with the above config
+          rclone copy "/workspace/SPT-AKI/Build/release.json" r2:/${{ secrets.R2_BUCKET_NAME }} --config rclone.conf
+        shell: bash
+
+      - name: Upload Release to HTTPS Source
+        id: upload-https-7z
+        run: |
+          cd /workspace/SPT-AKI/Build/
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+          echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
+        shell: bash
+
+      - name: Clean Old HTTPS Source Releases
+        run: |
+          cd /workspace/SPT-AKI/Build/
+
+          # Creating a script for sftp to execute
+          echo "cd /public/builds" > sftp_commands.txt
+          echo "ls" >> sftp_commands.txt
+
+          # Fetch a remote list of files
+          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b "sftp_commands.txt" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
+
+          echo "Files listed:"
+          echo "$FILE_LIST"
+
+          # Filtering and processing the file list
+          echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read filename; do
+            echo "Processing file: $filename"
+            # Extract date from filename
+            if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+              file_date="${BASH_REMATCH[1]}"
+              file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+
+              current_date=$(date +%s)
+              limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
+
+              if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
+                echo "Marked for deletion: $filename"
+                echo "rm \"/public/builds/$filename\"" >> delete_commands.txt
+              fi
             fi
-          fi
-        done
+          done
 
-        # Check if there are files to delete and execute
-        if [ -s delete_commands.txt ]; then
-          echo "Running deletion task..."
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
-        else
-          echo "No old files to delete."
-        fi
-      shell: bash
-
-    - name: Upload Release to Mega
-      id: upload-mega
-      run: |
-        mega-https on
-        mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-
-        mega-put -c "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
-
-        # Generate link and save it.
-        EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
-        LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
-        echo "::set-output name=link_mega::${LINK_MEGA}"
-
-        mega-logout
-      shell: bash
-
-    - name: Clean Old Mega Releases
-      run: |
-        mega-https on
-        mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-
-        # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
-        mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
-          # Extract date from filename
-          if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
-            file_date="${BASH_REMATCH[1]}"
-            file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
-
-            # Get current date minus 14 days
-            current_date=$(date +%s)
-            limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
-
-            # Compare dates and delete old files
-            if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-              echo "Deleting old file: $filename"
-              mega-rm "/spt-release/$filename"
-            fi
-          fi
-        done
-
-        # Remove old file versions to save space.
-        mega-deleteversions -f /spt-release/*
-
-        mega-logout
-      shell: bash
-
-    - name: Post Build Info to Discord
-      env:
-        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        BUILD_TYPE: ${{ needs.prepare.outputs.build_type }}
-        BASE_NAME: ${{ steps.generate-filename.outputs.base_name }}
-        BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
-        LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
-        LINK_HTTPS:  ${{ steps.upload-https-7z.outputs.link_https }}
-        MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
-        MODS_ENABLED_BLEEDINGMODS: ${{ needs.prepare.outputs.mod_enabled_bleedingmods }}
-        MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
-        MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
-      run: |
-        cd /workspace/SPT-AKI/Build/
-        UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-        FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
-        FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
-        TIMESTAMP=$(date --iso-8601=seconds)
-        FILE_SIZE_MB=$(stat -c %s "$BUILD_NAME" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
-        FILE_HASH=$(md5sum "$BUILD_NAME" | awk '{print $1}' | xxd -r -p | base64)
-        MODS=""
-
-        if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-          EMBED_COLOR=16705372
-          EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
-          MODS="$MODS_ENABLED_BLEEDINGMODS"
-        else
-          if [ "$BUILD_TYPE" == "bleeding" ]; then
-            EMBED_COLOR=15548997
-            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_BLEEDING"
-          elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
-            EMBED_COLOR=15548997
-            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_BLEEDINGMODS"
-          elif [ "$BUILD_TYPE" == "debug" ]; then
-            EMBED_COLOR=2123412
-            EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_DEBUG"
+          # Check if there are files to delete and execute
+          if [ -s delete_commands.txt ]; then
+            echo "Running deletion task..."
+            sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
           else
-            EMBED_COLOR=5763719
-            EMBED_DESCRIPTION=$'A new stable build is now ready for download. 7-Zip is *required* to extract the release. Have fun! 🎉'
-            MODS="$MODS_ENABLED_RELEASE"
+            echo "No old files to delete."
           fi
-        fi
+        shell: bash
 
-        if [[ "$MODS" == "true" ]]; then
-          MODS="enabled"
-        elif [[ "$MODS" == "false" ]]; then
-          MODS="disabled"
-        fi
+      - name: Upload Release to Mega
+        id: upload-mega
+        run: |
+          mega-https on
+          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-        fields_json='[
-          {"name": "Name", "value": "'"$BASE_NAME"'"},
-          {"name": "Build Type", "value": "'"$BUILD_TYPE"'", "inline": true},
-          {"name": "Mods", "value": "'"$MODS"'", "inline": true},
-          {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
-          {"name": "File Hash", "value": "'"$FILE_HASH"'"},
-          {"name": "Download", "value": "'"$LINK_MEGA"'"},
-          {"name": "Mirror", "value": "'"$LINK_HTTPS"'"}
-        ]'
+          mega-put -c "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
 
-        payload=$(jq -n \
-          --argjson fields "$fields_json" \
-          --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
-          --argjson EMBED_COLOR "$EMBED_COLOR" \
-          --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
-          --arg TIMESTAMP "$TIMESTAMP" \
-          '{
-            "content": $EMBED_DESCRIPTION,
-            "embeds": [
-              {
-                "title": "Build Information",
-                "color": $EMBED_COLOR,
-                "fields": $fields,
-                "footer": {"text": $FOOTER_MESSAGE, "icon_url": "https://i.imgur.com/28JJJec.png"},
-                "timestamp": $TIMESTAMP
-              }
-            ],
-            "username": "BuildBot",
-            "avatar_url": "https://i.imgur.com/28JJJec.png"
-          }')
-        echo "$payload" > payload_discord.json
+          # Generate link and save it.
+          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
+          LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
+          echo "::set-output name=link_mega::${LINK_MEGA}"
 
-        echo "Payload Generated:"
-        cat payload_discord.json
+          mega-logout
+        shell: bash
 
-        echo "Sending Payload..."
-        curl -H "Content-Type: application/json" \
-          -X POST \
-          --data-binary @payload_discord.json \
-          -v \
-          $DISCORD_WEBHOOK_URL
-      shell: bash
+      - name: Clean Old Mega Releases
+        run: |
+          mega-https on
+          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
+
+          # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
+          mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
+            # Extract date from filename
+            if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+              file_date="${BASH_REMATCH[1]}"
+              file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+
+              # Get current date minus 14 days
+              current_date=$(date +%s)
+              limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
+
+              # Compare dates and delete old files
+              if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
+                echo "Deleting old file: $filename"
+                mega-rm "/spt-release/$filename"
+              fi
+            fi
+          done
+
+          # Remove old file versions to save space.
+          mega-deleteversions -f /spt-release/*
+
+          mega-logout
+        shell: bash
+
+      - name: Post Build Info to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          BUILD_TYPE: ${{ needs.prepare.outputs.build_type }}
+          BASE_NAME: ${{ steps.generate-filename.outputs.base_name }}
+          BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
+          FILE_SIZE_MB: ${{ steps.compress-release.outputs.file_size_mb }}
+          FILE_HASH: ${{ steps.compress-release.outputs.file_hash }}
+          LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
+          LINK_HTTPS: ${{ steps.upload-https-7z.outputs.link_https }}
+          MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
+          MODS_ENABLED_BLEEDINGMODS: ${{ needs.prepare.outputs.mod_enabled_bleedingmods }}
+          MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
+          MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
+        run: |
+          cd /workspace/SPT-AKI/Build/
+          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+          FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
+          FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
+          TIMESTAMP=$(date --iso-8601=seconds)
+          MODS=""
+
+          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
+            EMBED_COLOR=16705372
+            EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
+            MODS="$MODS_ENABLED_BLEEDINGMODS"
+          else
+            if [ "$BUILD_TYPE" == "bleeding" ]; then
+              EMBED_COLOR=15548997
+              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
+              MODS="$MODS_ENABLED_BLEEDING"
+            elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
+              EMBED_COLOR=15548997
+              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
+              MODS="$MODS_ENABLED_BLEEDINGMODS"
+            elif [ "$BUILD_TYPE" == "debug" ]; then
+              EMBED_COLOR=2123412
+              EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
+              MODS="$MODS_ENABLED_DEBUG"
+            else
+              EMBED_COLOR=5763719
+              EMBED_DESCRIPTION=$'A new stable build is now ready for download. 7-Zip is *required* to extract the release. Have fun! 🎉'
+              MODS="$MODS_ENABLED_RELEASE"
+            fi
+          fi
+
+          if [[ "$MODS" == "true" ]]; then
+            MODS="enabled"
+          elif [[ "$MODS" == "false" ]]; then
+            MODS="disabled"
+          fi
+
+          fields_json='[
+            {"name": "Name", "value": "'"$BASE_NAME"'"},
+            {"name": "Build Type", "value": "'"$BUILD_TYPE"'", "inline": true},
+            {"name": "Mods", "value": "'"$MODS"'", "inline": true},
+            {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
+            {"name": "File Hash", "value": "'"$FILE_HASH"'"},
+            {"name": "Download", "value": "'"$LINK_MEGA"'"},
+            {"name": "Mirror", "value": "'"$LINK_HTTPS"'"}
+          ]'
+
+          payload=$(jq -n \
+            --argjson fields "$fields_json" \
+            --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
+            --argjson EMBED_COLOR "$EMBED_COLOR" \
+            --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
+            --arg TIMESTAMP "$TIMESTAMP" \
+            '{
+              "content": $EMBED_DESCRIPTION,
+              "embeds": [
+                {
+                  "title": "Build Information",
+                  "color": $EMBED_COLOR,
+                  "fields": $fields,
+                  "footer": {"text": $FOOTER_MESSAGE, "icon_url": "https://i.imgur.com/28JJJec.png"},
+                  "timestamp": $TIMESTAMP
+                }
+              ],
+              "username": "BuildBot",
+              "avatar_url": "https://i.imgur.com/28JJJec.png"
+            }')
+          echo "$payload" > payload_discord.json
+
+          echo "Payload Generated:"
+          cat payload_discord.json
+
+          echo "Sending Payload..."
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            --data-binary @payload_discord.json \
+            -v \
+            $DISCORD_WEBHOOK_URL
+        shell: bash

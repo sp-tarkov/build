@@ -65,7 +65,7 @@ Prior to the assembly and distribution of Docker images, it is crucial to increm
 
 ```
 # Command to build and push the spt-build-node Docker image to Docker Hub
-docker build -t refringe/spt-build-node:1.0.8 -t refringe/spt-build-node:latest -f Dockerfile.node .
+docker build -t refringe/spt-build-node:1.0.9 -t refringe/spt-build-node:latest -f Dockerfile.node .
 docker push refringe/spt-build-node --all-tags
 
 # Command to build and push the spt-build-dotnet Docker image to Docker Hub
