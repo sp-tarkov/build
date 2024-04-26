@@ -556,7 +556,7 @@ jobs:
           ls -lah
 
           # Remove old 7z files from the bucket
-          rclone -v delete r2:/${{ secrets.R2_BUCKET_NAME }}/*.7z --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone -vv delete r2:/${{ secrets.R2_BUCKET_NAME }}/*.7z --config /workspace/SPT-AKI/Build/rclone.conf
 
           # Upload the file using rclone with the above config
           rclone -v copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:/${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
