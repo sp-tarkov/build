@@ -544,14 +544,14 @@ jobs:
           acl = public-read' > /workspace/SPT-AKI/Build/rclone.conf
 
           # Generate Release JSON File
-          echo '{
-            "AkiVersion": "${SPT_VERSION}",
-            "ClientVersion": "${CLIENT_VERSION}",
-            "Mirrors": [{
-              "DownloadUrl": "${{ secrets.R2_FRONT }}/${{ steps.generate-filename.outputs.build_name }}",
-              "Hash": "${FILE_HASH}"
+          echo "{
+            \"AkiVersion\": \"${SPT_VERSION}\",
+            \"ClientVersion\": \"${CLIENT_VERSION}\",
+            \"Mirrors\": [{
+              \"DownloadUrl\": \"${{ secrets.R2_FRONT }}/${{ steps.generate-filename.outputs.build_name }}\",
+              \"Hash\": \"${FILE_HASH}\"
             }]
-          }' > /workspace/SPT-AKI/Build/release.json
+          }" > /workspace/SPT-AKI/Build/release.json
 
           ls -lah
 
