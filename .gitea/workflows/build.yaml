@@ -557,16 +557,19 @@ jobs:
           ls -lah
 
           echo "Current Remote Directory:"
-          rclone lsd r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone ls r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
 
           # Remove old 7z files from the bucket
-          rclone --dry-run -vv delete r2:${{ secrets.R2_BUCKET_NAME }}/*.7z --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone lsf r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
+          echo "Files to be deleted:"
+          cat files-to-remove.txt
+          rclone delete r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --files-from=files-to-remove.txt --max-depth=1 --dry-run -vv
 
           # Upload the file using rclone with the above config
-          rclone --dry-run -vv copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --dry-run -vv
 
           # Upload the JSON file using rclone with the above config
-          rclone --dry-run -vv copy "/workspace/SPT-AKI/Build/release.json" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone copy "/workspace/SPT-AKI/Build/release.json" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --dry-run -vv
         shell: bash
 
       - name: Upload Release to HTTPS Source
