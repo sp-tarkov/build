@@ -553,16 +553,20 @@ jobs:
             }]
           }" > /workspace/SPT-AKI/Build/release.json
 
+          echo "Current Local Directory:"
           ls -lah
 
+          echo "Current Remote Directory:"
+          rclone lsd r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+
           # Remove old 7z files from the bucket
-          rclone -vv delete r2:/${{ secrets.R2_BUCKET_NAME }}/*.7z --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone --dry-run -vv delete r2:${{ secrets.R2_BUCKET_NAME }}/*.7z --config /workspace/SPT-AKI/Build/rclone.conf
 
           # Upload the file using rclone with the above config
-          rclone -v copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:/${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone --dry-run -vv copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
 
           # Upload the JSON file using rclone with the above config
-          rclone -v copy "/workspace/SPT-AKI/Build/release.json" r2:/${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone --dry-run -vv copy "/workspace/SPT-AKI/Build/release.json" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
         shell: bash
 
       - name: Upload Release to HTTPS Source
