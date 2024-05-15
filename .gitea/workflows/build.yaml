@@ -580,47 +580,6 @@ jobs:
           echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
         shell: bash
 
-      - name: Clean Old HTTPS Source Releases
-        run: |
-          cd /workspace/SPT-AKI/Build/
-
-          # Creating a script for sftp to execute
-          echo "cd /public/builds" > sftp_commands.txt
-          echo "ls" >> sftp_commands.txt
-
-          # Fetch a remote list of files
-          FILE_LIST=$(sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b "sftp_commands.txt" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }})
-
-          echo "Files listed:"
-          echo "$FILE_LIST"
-
-          # Filtering and processing the file list
-          echo "$FILE_LIST" | tr ' ' '\n' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read filename; do
-            echo "Processing file: $filename"
-            # Extract date from filename
-            if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
-              file_date="${BASH_REMATCH[1]}"
-              file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
-
-              current_date=$(date +%s)
-              limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
-
-              if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                echo "Marked for deletion: $filename"
-                echo "rm \"/public/builds/$filename\"" >> delete_commands.txt
-              fi
-            fi
-          done
-
-          # Check if there are files to delete and execute
-          if [ -s delete_commands.txt ]; then
-            echo "Running deletion task..."
-            sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o "BatchMode=no" -o "Port=${{ secrets.SFTP_PORT }}" -o "StrictHostKeyChecking=no" -b delete_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
-          else
-            echo "No old files to delete."
-          fi
-        shell: bash
-
       - name: Upload Release to Mega
         id: upload-mega
         run: |
