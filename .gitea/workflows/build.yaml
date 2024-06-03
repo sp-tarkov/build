@@ -45,13 +45,13 @@ jobs:
         id: determine-target-tag
         if: steps.determine-context.outputs.is_nightly == 'false'
         run: |
-          rm -rf /workspace/SPT-AKI/Build/trigger
-          if ! git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_ACCESS_TOKEN }}@dev.sp-tarkov.com/SPT-AKI/Build.git --branch "trigger" --depth 1 /workspace/SPT-AKI/Build/trigger; then
+          rm -rf /workspace/SPT/Build/trigger
+          if ! git clone https://${{ secrets.BUILD_USERNAME }}:${{ secrets.BUILD_ACCESS_TOKEN }}@dev.sp-tarkov.com/SPT/Build.git --branch "trigger" --depth 1 /workspace/SPT/Build/trigger; then
             echo "Failed to clone the trigger branch. The branch may not exist."
             echo "The trigger branch is critical to this workflow."
             exit 1
           fi
-          cd /workspace/SPT-AKI/Build/trigger
+          cd /workspace/SPT/Build/trigger
           if [ ! -f .gitea/trigger ]; then
             echo "Failed to find the .gitea/trigger file. It may not exist."
             echo "The trigger file is critical to this workflow."
@@ -93,9 +93,9 @@ jobs:
           PROCEED="true"
           if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
             declare -A BRANCHES=(
-              [Server]="https://dev.sp-tarkov.com/SPT-AKI/Server.git@${{ steps.determine-context.outputs.branch_server }}"
-              [Modules]="https://dev.sp-tarkov.com/SPT-AKI/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
-              [Launcher]="https://dev.sp-tarkov.com/SPT-AKI/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
+              [Server]="https://dev.sp-tarkov.com/SPT/Server.git@${{ steps.determine-context.outputs.branch_server }}"
+              [Modules]="https://dev.sp-tarkov.com/SPT/Modules.git@${{ steps.determine-context.outputs.branch_modules }}"
+              [Launcher]="https://dev.sp-tarkov.com/SPT/Launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
             )
             for REPO_NAME in "${!BRANCHES[@]}"; do
               REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
@@ -109,7 +109,7 @@ jobs:
             done
           else
             TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
-            REPOS=("https://dev.sp-tarkov.com/SPT-AKI/Server.git" "https://dev.sp-tarkov.com/SPT-AKI/Modules.git" "https://dev.sp-tarkov.com/SPT-AKI/Launcher.git")
+            REPOS=("https://dev.sp-tarkov.com/SPT/Server.git" "https://dev.sp-tarkov.com/SPT/Modules.git" "https://dev.sp-tarkov.com/SPT/Launcher.git")
             for REPO in "${REPOS[@]}"; do
               echo "Checking for tag $TAG in $REPO..."
               if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
@@ -132,10 +132,10 @@ jobs:
       - name: Extract Versions
         id: versions
         run: |
-          rm -rf /workspace/SPT-AKI/Build/server-core
-          git init /workspace/SPT-AKI/Build/server-core
-          cd /workspace/SPT-AKI/Build/server-core
-          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+          rm -rf /workspace/SPT/Build/server-core
+          git init /workspace/SPT/Build/server-core
+          cd /workspace/SPT/Build/server-core
+          git remote add origin https://dev.sp-tarkov.com/SPT/Server.git
           git config core.sparseCheckout true
           echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
 
@@ -163,10 +163,10 @@ jobs:
       - name: Extract Mod Configurations
         id: mod-config
         run: |
-          rm -rf /workspace/SPT-AKI/Build/server-mods-config
-          git init /workspace/SPT-AKI/Build/server-mods-config
-          cd /workspace/SPT-AKI/Build/server-mods-config
-          git remote add origin https://dev.sp-tarkov.com/SPT-AKI/Server.git
+          rm -rf /workspace/SPT/Build/server-mods-config
+          git init /workspace/SPT/Build/server-mods-config
+          cd /workspace/SPT/Build/server-mods-config
+          git remote add origin https://dev.sp-tarkov.com/SPT/Server.git
           git config core.sparseCheckout true
 
           echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
@@ -214,30 +214,30 @@ jobs:
       - name: Clone
         id: clone-server
         run: |
-          rm -rf /workspace/SPT-AKI/Build/server
+          rm -rf /workspace/SPT/Build/server
           if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             BRANCH=${{ needs.prepare.outputs.branch_server }}
             echo "Cloning branch $BRANCH"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/server
+            git clone https://dev.sp-tarkov.com/SPT/Server.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/server
           else
             TAG=${{ needs.prepare.outputs.target_tag }}
             echo "Cloning tag $TAG"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Server.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/server
+            git clone https://dev.sp-tarkov.com/SPT/Server.git --branch "$TAG" --depth 1 /workspace/SPT/Build/server
           fi
 
-          cd /workspace/SPT-AKI/Build/server
+          cd /workspace/SPT/Build/server
           echo "::set-output name=server_commit::$(git rev-parse --short HEAD)"
         shell: bash
 
       - name: Pull LFS Files
         run: |
-          cd /workspace/SPT-AKI/Build/server
+          cd /workspace/SPT/Build/server
           git lfs pull && git lfs ls-files
         shell: bash
 
       - name: Runner Debug Information
         run: |
-          cd /workspace/SPT-AKI/Build/server
+          cd /workspace/SPT/Build/server
           echo "Git version: $(git --version)"
           echo "Git LFS version: $(git-lfs --version)"
           echo "Node.js version: $(node --version)"
@@ -252,13 +252,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /workspace/SPT-AKI/Build/server/project/node_modules
-          key: npm-dependencies-${{ hashFiles('/workspace/SPT-AKI/Build/server/project/package.json') }}
+            /workspace/SPT/Build/server/project/node_modules
+          key: npm-dependencies-${{ hashFiles('/workspace/SPT/Build/server/project/package.json') }}
 
       - name: Install Dependencies
         if: steps.cache-npm-dependencies.outputs.cache-hit != 'true'
         run: |
-          cd /workspace/SPT-AKI/Build/server/project
+          cd /workspace/SPT/Build/server/project
           rm -rf node_modules
           npm install
         shell: bash
@@ -268,25 +268,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /workspace/SPT-AKI/Build/server/project/build
+            /workspace/SPT/Build/server/project/build
           key: server-build-${{ steps.clone-server.outputs.server_commit }}-${{ needs.prepare.outputs.build_type }}
 
       - name: Build Server
         if: steps.cache-server-build.outputs.cache-hit != 'true'
         run: |
-          cd /workspace/SPT-AKI/Build/server/project
+          cd /workspace/SPT/Build/server/project
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           echo "Running build for $BUILD_TYPE"
           npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
           printf "\nBuilt!\n\n"
-          tree -C /workspace/SPT-AKI/Build/server/project/build
+          tree -C /workspace/SPT/Build/server/project/build
         shell: bash
 
       - name: Artifact Server
         uses: actions/upload-artifact@v3
         with:
           name: server-artifact
-          path: /workspace/SPT-AKI/Build/server/project/build/
+          path: /workspace/SPT/Build/server/project/build/
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -301,24 +301,24 @@ jobs:
       - name: Clone
         id: clone-modules
         run: |
-          rm -rf /workspace/SPT-AKI/Build/modules
+          rm -rf /workspace/SPT/Build/modules
           if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             BRANCH=${{ needs.prepare.outputs.branch_modules }}
             echo "Cloning modules from branch $BRANCH"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/modules
+            git clone https://dev.sp-tarkov.com/SPT/Modules.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/modules
           else
             TAG=${{ needs.prepare.outputs.target_tag }}
             echo "Cloning modules from tag $TAG"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Modules.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/modules
+            git clone https://dev.sp-tarkov.com/SPT/Modules.git --branch "$TAG" --depth 1 /workspace/SPT/Build/modules
           fi
 
-          cd /workspace/SPT-AKI/Build/modules
+          cd /workspace/SPT/Build/modules
           echo "::set-output name=modules_commit::$(git rev-parse --short HEAD)"
         shell: bash
 
       - name: Download Client Module Package
         run: |
-          DIR_MANAGED="/workspace/SPT-AKI/Build/modules/project/Shared/Managed"
+          DIR_MANAGED="/workspace/SPT/Build/modules/project/Shared/Managed"
           DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.7z"
           DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.7z"
           echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
@@ -336,14 +336,14 @@ jobs:
 
       - name: Decompress Client Module Package
         run: |
-          cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
+          cd /workspace/SPT/Build/modules/project/Shared/Managed
           7z x ${{ needs.prepare.outputs.client_version }}.7z -aoa
           echo "Client module package decompressed."
         shell: bash
 
       - name: Delete Client Module Package
         run: |
-          cd /workspace/SPT-AKI/Build/modules/project/Shared/Managed
+          cd /workspace/SPT/Build/modules/project/Shared/Managed
           rm -f ${{ needs.prepare.outputs.client_version }}.7z
           echo "Client module package deleted."
         shell: bash
@@ -353,23 +353,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /workspace/SPT-AKI/Build/modules/project/Build
+            /workspace/SPT/Build/modules/project/Build
           key: modules-build-${{ steps.clone-modules.outputs.modules_commit }}
 
       - name: Build Modules
         if: steps.cache-modules-build.outputs.cache-hit != 'true'
         run: |
-          cd /workspace/SPT-AKI/Build/modules/project
+          cd /workspace/SPT/Build/modules/project
           dotnet build -c Release -p:Version=${{ needs.prepare.outputs.spt_version }}
           printf "\nBuilt!\n\n"
-          tree /workspace/SPT-AKI/Build/modules/project/Build
+          tree /workspace/SPT/Build/modules/project/Build
         shell: bash
 
       - name: Artifact Modules
         uses: actions/upload-artifact@v3
         with:
           name: modules-artifact
-          path: /workspace/SPT-AKI/Build/modules/project/Build
+          path: /workspace/SPT/Build/modules/project/Build
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -384,18 +384,18 @@ jobs:
       - name: Clone
         id: clone-launcher
         run: |
-          rm -rf /workspace/SPT-AKI/Build/launcher
+          rm -rf /workspace/SPT/Build/launcher
           if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             BRANCH=${{ needs.prepare.outputs.branch_launcher }}
             echo "Cloning launcher from branch $BRANCH"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT-AKI/Build/launcher
+            git clone https://dev.sp-tarkov.com/SPT/Launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/launcher
           else
             TAG=${{ needs.prepare.outputs.target_tag }}
             echo "Cloning launcher from tag $TAG"
-            git clone https://dev.sp-tarkov.com/SPT-AKI/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT-AKI/Build/launcher
+            git clone https://dev.sp-tarkov.com/SPT/Launcher.git --branch "$TAG" --depth 1 /workspace/SPT/Build/launcher
           fi
 
-          cd /workspace/SPT-AKI/Build/launcher
+          cd /workspace/SPT/Build/launcher
           echo "::set-output name=launcher_commit::$(git rev-parse --short HEAD)"
         shell: bash
 
@@ -404,23 +404,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /workspace/SPT-AKI/Build/launcher/project/Build
+            /workspace/SPT/Build/launcher/project/Build
           key: launcher-build-${{ steps.clone-launcher.outputs.launcher_commit }}
 
       - name: Build Launcher
         if: steps.cache-launcher-build.outputs.cache-hit != 'true'
         run: |
-          cd /workspace/SPT-AKI/Build/launcher/project
+          cd /workspace/SPT/Build/launcher/project
           dotnet build
           printf "\nBuilt!\n\n"
-          tree /workspace/SPT-AKI/Build/launcher/project/Build
+          tree /workspace/SPT/Build/launcher/project/Build
         shell: bash
 
       - name: Artifact Launcher
         uses: actions/upload-artifact@v3
         with:
           name: launcher-artifact
-          path: /workspace/SPT-AKI/Build/launcher/project/Build
+          path: /workspace/SPT/Build/launcher/project/Build
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -433,39 +433,39 @@ jobs:
     steps:
       - name: Clean Directory
         run: |
-          rm -rf /workspace/SPT-AKI/Build/release /workspace/SPT-AKI/Build/build
-          mkdir -p /workspace/SPT-AKI/Build/release
+          rm -rf /workspace/SPT/Build/release /workspace/SPT/Build/build
+          mkdir -p /workspace/SPT/Build/release
         shell: bash
 
       - name: Download Server Artifact
         uses: actions/download-artifact@v3
         with:
           name: server-artifact
-          path: /workspace/SPT-AKI/Build/release/
+          path: /workspace/SPT/Build/release/
 
       - name: Download Modules Artifact
         uses: actions/download-artifact@v3
         with:
           name: modules-artifact
-          path: /workspace/SPT-AKI/Build/release/
+          path: /workspace/SPT/Build/release/
 
       - name: Download Launcher Artifact
         uses: actions/download-artifact@v3
         with:
           name: launcher-artifact
-          path: /workspace/SPT-AKI/Build/release/
+          path: /workspace/SPT/Build/release/
 
       - name: Clone Build Project
         uses: actions/checkout@v3
         with:
-          path: /workspace/SPT-AKI/Build/build
+          path: /workspace/SPT/Build/build
 
       - name: Merge Static Assets and Dynamic Files
-        run: cp -rvf /workspace/SPT-AKI/Build/build/static-assets/* /workspace/SPT-AKI/Build/release/
+        run: cp -rvf /workspace/SPT/Build/build/static-assets/* /workspace/SPT/Build/release/
         shell: bash
 
       - name: List Release Contents
-        run: tree /workspace/SPT-AKI/Build/release
+        run: tree /workspace/SPT/Build/release
         shell: bash
 
       - name: Generate Release Filename
@@ -513,7 +513,7 @@ jobs:
       - name: Compress Release
         id: compress-release
         run: |
-          cd /workspace/SPT-AKI/Build/release
+          cd /workspace/SPT/Build/release
           7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
           echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
 
@@ -531,7 +531,7 @@ jobs:
           CLIENT_VERSION: ${{ needs.prepare.outputs.client_version }}
           FILE_HASH: ${{ steps.compress-release.outputs.file_hash }}
         run: |
-          cd /workspace/SPT-AKI/Build
+          cd /workspace/SPT/Build
 
           # Configure Rclone
           echo '[r2]
@@ -541,7 +541,7 @@ jobs:
           secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
           region = auto
           endpoint = ${{ secrets.R2_ENDPOINT }}
-          acl = public-read' > /workspace/SPT-AKI/Build/rclone.conf
+          acl = public-read' > /workspace/SPT/Build/rclone.conf
 
           # Generate Release JSON File
           echo "{
@@ -551,32 +551,32 @@ jobs:
               \"DownloadUrl\": \"${{ secrets.R2_FRONT }}/${{ steps.generate-filename.outputs.build_name }}\",
               \"Hash\": \"${FILE_HASH}\"
             }]
-          }" > /workspace/SPT-AKI/Build/release.json
+          }" > /workspace/SPT/Build/release.json
 
           echo "Current Local Directory:"
           ls -lah
 
           echo "Current Remote Directory:"
-          rclone ls r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf
+          rclone ls r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT/Build/rclone.conf
 
           # Remove old 7z files from the bucket
-          rclone lsf r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
+          rclone lsf r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT/Build/rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
           echo "Files to be deleted:"
           cat files-to-remove.txt
-          rclone delete r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf --files-from=files-to-remove.txt --max-depth=1 -vv
+          rclone delete r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT/Build/rclone.conf --files-from=files-to-remove.txt --max-depth=1 -vv
 
           # Upload the file using rclone with the above config
-          rclone copy "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf -vv
+          rclone copy "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT/Build/rclone.conf -vv
 
           # Upload the JSON file using rclone with the above config
-          rclone copy "/workspace/SPT-AKI/Build/release.json" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT-AKI/Build/rclone.conf -vv
+          rclone copy "/workspace/SPT/Build/release.json" r2:${{ secrets.R2_BUCKET_NAME }} --config /workspace/SPT/Build/rclone.conf -vv
         shell: bash
 
       - name: Upload Release to HTTPS Source
         id: upload-https-7z
         run: |
-          cd /workspace/SPT-AKI/Build/
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+          cd /workspace/SPT/Build/
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
           echo "::set-output name=link_https::${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
         shell: bash
 
@@ -586,7 +586,7 @@ jobs:
           mega-https on
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-          mega-put -c "/workspace/SPT-AKI/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
+          mega-put -c "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
 
           # Generate link and save it.
           EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
@@ -641,7 +641,7 @@ jobs:
           MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
           MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
         run: |
-          cd /workspace/SPT-AKI/Build/
+          cd /workspace/SPT/Build/
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
           FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
