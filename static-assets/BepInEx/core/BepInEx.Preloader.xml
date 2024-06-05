@@ -113,6 +113,11 @@
         <member name="M:BepInEx.Preloader.Patching.PatcherPlugin.Load(System.IO.BinaryReader)">
             <inheritdoc />
         </member>
+        <member name="M:BepInEx.Preloader.Entrypoint.Main">
+            <summary>
+                The main entrypoint of BepInEx, called from Doorstop.
+            </summary>
+        </member>
         <member name="M:BepInEx.Preloader.PlatformUtils.SetPlatform">
             <summary>
             Recreation of MonoMod's PlatformHelper.DeterminePlatform method, but with libc calls instead of creating processes.
@@ -159,11 +164,6 @@
         </member>
         <member name="M:BepInEx.Preloader.PreloaderConsoleListener.Dispose">
             <inheritdoc />
-        </member>
-        <member name="M:Doorstop.Entrypoint.Start">
-            <summary>
-                The main entrypoint of BepInEx, called from Doorstop.
-            </summary>
         </member>
     </members>
 </doc>
