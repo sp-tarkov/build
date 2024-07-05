@@ -152,7 +152,7 @@ jobs:
 
           # Extract versions from core.json
           cd project/assets/configs
-          SPT_VERSION=$(jq -r '.sptVersion' core.json)
+          SPT_VERSION=$(jq -r '.akiVersion' core.json)
           FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
           CLIENT_VERSION=${FULL_VERSION##*.}
 
