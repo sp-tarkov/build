@@ -2,7 +2,8 @@ name: SPT Release Build
 
 on:
   schedule:
-    - cron: "* 19 * * *" # Every day at 3pm ET
+    #- cron: "* 19 * * *" # Every day at 3pm ET
+    - cron: "*/10 * * * *" # Testing
   push:
     branches: [trigger]
 
@@ -33,9 +34,9 @@ jobs:
           echo "Determining build context..."
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             echo "::set-output name=is_nightly::true"
-            echo "::set-output name=branch_server::3.8.1-DEV"
-            echo "::set-output name=branch_modules::3.8.1-DEV"
-            echo "::set-output name=branch_launcher::3.8.1-DEV"
+            echo "::set-output name=branch_server::3.10.0-DEV"
+            echo "::set-output name=branch_modules::310-dev"
+            echo "::set-output name=branch_launcher::3.10.0-DEV"
           else
             echo "::set-output name=is_nightly::false"
           fi
