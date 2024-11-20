@@ -601,12 +601,13 @@ jobs:
           mega-https on
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-          # Find files matching the pattern
+          mega-psa --discard
+
           echo "Finding files matching the pattern:"
           mega-find /spt-release --pattern 'SPT-*.7z' > matching_files.txt
           cat matching_files.txt
 
-          # Filter files matching specific build types
+          echo "Filter files matching specific build types:"
           grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' matching_files.txt > filtered_files.txt
           cat filtered_files.txt
 
@@ -614,10 +615,13 @@ jobs:
           while read -r filepath; do
             filename=$(basename "$filepath")
             echo "Processing filename: $filename"
+
             # Extract date from filename
             if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
+
               file_date="${BASH_REMATCH[1]}"
               echo "Extracted date: $file_date"
+
               file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
               echo "File date timestamp: $file_date_fmt"
 
