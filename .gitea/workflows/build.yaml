@@ -601,24 +601,43 @@ jobs:
           mega-https on
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
-          # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
-          mega-ls /spt-release | awk '{print $NF}' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
+          # Find files matching the pattern
+          echo "Finding files matching the pattern:"
+          mega-find /spt-release --pattern 'SPT-*.7z' > matching_files.txt
+          cat matching_files.txt
+
+          # Filter files matching specific build types
+          grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' matching_files.txt > filtered_files.txt
+          cat filtered_files.txt
+
+          # Process each filepath
+          while read -r filepath; do
+            filename=$(basename "$filepath")
+            echo "Processing filename: $filename"
             # Extract date from filename
             if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
               file_date="${BASH_REMATCH[1]}"
+              echo "Extracted date: $file_date"
               file_date_fmt=$(date -d "${file_date:0:4}-${file_date:4:2}-${file_date:6:2}" +%s)
+              echo "File date timestamp: $file_date_fmt"
 
               # Get current date minus 14 days
               current_date=$(date +%s)
               limit_date=$(date -d "@$((current_date - 14 * 24 * 3600))" +%s)
+              echo "Current date timestamp: $current_date"
+              echo "Limit date timestamp: $limit_date"
 
               # Compare dates and delete old files
               if [[ "$file_date_fmt" -lt "$limit_date" ]]; then
-                echo "Deleting old file: $filename"
-                mega-rm "/spt-release/$filename"
+                echo "Deleting old file: $filepath"
+                mega-rm "$filepath"
+              else
+                echo "File is not older than 14 days, keeping: $filepath"
               fi
+            else
+              echo "Filename does not match date pattern: $filename"
             fi
-          done
+          done < filtered_files.txt
 
           # Remove old file versions to save space.
           mega-deleteversions -f /spt-release/*
