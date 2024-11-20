@@ -602,7 +602,7 @@ jobs:
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
 
           # List files and filter out old NIGHTLY, DEBUG, or BLEEDING files
-          mega-ls /spt-release | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
+          mega-ls /spt-release | awk '{print $NF}' | grep -E 'SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z$' | while read -r filename; do
             # Extract date from filename
             if [[ "$filename" =~ ([0-9]{8})\.7z$ ]]; then
               file_date="${BASH_REMATCH[1]}"
@@ -643,7 +643,7 @@ jobs:
         run: |
           cd /workspace/SPT/Build/
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-          FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw")
+          FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "Katalyst is the reason we can’t have nice things" "Katalyst voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe might be watching--Or coding--Probably both" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Stella is currently judging your grammar" "Stella just gave this embed a 6/10" "Waffle has entered the chat, and now it’s weird" "Waffle is too busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
           TIMESTAMP=$(date --iso-8601=seconds)
           MODS=""
