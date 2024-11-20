@@ -10,7 +10,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.8
+      image: refringe/spt-build-node:1.0.9
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
@@ -207,7 +207,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.8
+      image: refringe/spt-build-node:1.0.9
     outputs:
       server_commit: ${{ steps.clone-server.outputs.server_commit }}
     steps:
@@ -429,7 +429,7 @@ jobs:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.8
+      image: refringe/spt-build-node:1.0.9
     steps:
       - name: Clean Directory
         run: |
