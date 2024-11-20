@@ -600,8 +600,8 @@ jobs:
         run: |
           mega-https on
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-
-          mega-psa --discard
+          
+          mega-exec psa --discard
 
           echo "Finding files matching the pattern:"
           mega-find /spt-release --pattern 'SPT-*.7z' > matching_files.txt
