@@ -607,7 +607,7 @@ jobs:
 
           mega-find /spt-release \
             --type=f \
-            --pattern=SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z \
+            --pattern='SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z' \
             --use-pcre \
             --mtime=+14d > old_files.txt
 
