@@ -584,8 +584,8 @@ jobs:
         id: upload-mega
         run: |
           mega-https on
-          mega-exec psa --discard
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
+          mega-exec psa --discard
 
           mega-put -c "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
 
