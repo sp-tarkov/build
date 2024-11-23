@@ -23,7 +23,7 @@ jobs:
       branch_server: ${{ steps.determine-context.outputs.branch_server }}
       branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
       branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
-      target_tag: ${{ steps.determine-target-tag.outputs.target_tag }}
+      target_tag: ${{ steps.determine-context.outputs.target_tag }}
       build_type: ${{ steps.determine-build-type.outputs.build_type }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
@@ -47,6 +47,7 @@ jobs:
             echo "branch_server=3.10.0-DEV" >> $GITHUB_OUTPUT
             echo "branch_modules=310-dev" >> $GITHUB_OUTPUT
             echo "branch_launcher=3.10.0-DEV" >> $GITHUB_OUTPUT
+            echo "Context is nightly build"
           else
             echo "is_nightly=false" >> $GITHUB_OUTPUT
             # Determine the tag based on the event type
@@ -64,6 +65,7 @@ jobs:
               exit 1
             fi
             echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "Target tag is $TAG_NAME"
           fi
 
       - name: Determine Build Type
@@ -73,7 +75,7 @@ jobs:
           if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
             BUILD_TYPE="bleedingmods"
           else
-            TARGET_TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
+            TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
             TARGET_TAG_UPPER="${TARGET_TAG^^}"
 
             BUILD_TYPE="debug"
@@ -86,6 +88,7 @@ jobs:
             fi
           fi
           echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
+          echo "Build type is $BUILD_TYPE"
 
       - name: Check Existence
         id: check-existence
@@ -109,7 +112,7 @@ jobs:
               fi
             done
           else
-            TAG="${{ steps.determine-target-tag.outputs.target_tag }}"
+            TAG="${{ steps.determine-context.outputs.target_tag }}"
             REPOS=("https://github.com/sp-tarkov/server.git" "https://github.com/sp-tarkov/modules.git" "https://github.com/sp-tarkov/launcher.git")
             for REPO in "${REPOS[@]}"; do
               echo "Checking for tag $TAG in $REPO..."
@@ -142,7 +145,7 @@ jobs:
           if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
             REF=${{ steps.determine-context.outputs.branch_server }}
           else
-            REF=${{ steps.determine-target-tag.outputs.target_tag }}
+            REF=${{ steps.determine-context.outputs.target_tag }}
           fi
 
           git fetch --depth=1 origin "${REF}"
@@ -174,7 +177,7 @@ jobs:
           if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
             REF=${{ steps.determine-context.outputs.branch_server }}
           else
-            REF=${{ steps.determine-target-tag.outputs.target_tag }}
+            REF=${{ steps.determine-context.outputs.target_tag }}
           fi
 
           git fetch --depth=1 origin "${REF}"
