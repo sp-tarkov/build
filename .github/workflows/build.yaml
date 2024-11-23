@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: spt-release-build
+  cancel-in-progress: true
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
