@@ -5,6 +5,12 @@ on:
     - cron: "0 17 * * *"
   repository_dispatch:
     types: [build-trigger]
+  workflow_dispatch:
+    inputs:
+      buildTag:
+        description: "The tag to build on"
+        required: true
+        type: string
 
 jobs:
   prepare:
@@ -33,6 +39,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           CLIENT_PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
+          WORKFLOW_INPUT_TAG: ${{ github.event.inputs.buildTag }}
         run: |
           echo "Determining build context..."
           if [[ "$EVENT_NAME" == "schedule" ]]; then
@@ -42,24 +49,22 @@ jobs:
             echo "branch_launcher=3.10.0-DEV" >> $GITHUB_OUTPUT
           else
             echo "is_nightly=false" >> $GITHUB_OUTPUT
-            if [[ -z "$CLIENT_PAYLOAD_TAG" ]]; then
+            # Determine the tag based on the event type
+            if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+              TAG_NAME="$WORKFLOW_INPUT_TAG"
+            elif [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
+              TAG_NAME="$CLIENT_PAYLOAD_TAG"
+            else
+              echo "Unsupported event: $EVENT_NAME"
+              exit 1
+            fi
+
+            if [[ -z "$TAG_NAME" ]]; then
               echo "No tag provided in event payload."
               exit 1
             fi
-            echo "target_tag=$CLIENT_PAYLOAD_TAG" >> $GITHUB_OUTPUT
+            echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
           fi
-
-      - name: Determine Target Tag
-        id: determine-target-tag
-        if: steps.determine-context.outputs.is_nightly == 'false'
-        shell: bash
-        run: |
-          TAG_NAME="${{ github.event.client_payload.tag }}"
-          if [[ -z "$TAG_NAME" ]]; then
-            echo "No tag provided in event payload."
-            exit 1
-          fi
-          echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
 
       - name: Determine Build Type
         id: determine-build-type
