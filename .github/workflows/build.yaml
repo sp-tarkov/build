@@ -381,39 +381,40 @@ jobs:
       - name: Clean Directory
         shell: bash
         run: |
-          rm -rf /workspace/SPT/Build/release /workspace/SPT/Build/build
-          mkdir -p /workspace/SPT/Build/release
+          rm -rf release build
+          mkdir -p release
 
       - name: Download Server Artifact
         uses: actions/download-artifact@v4
         with:
           name: server-artifact
-          path: /workspace/SPT/Build/release/
+          path: release/
 
       - name: Download Modules Artifact
         uses: actions/download-artifact@v4
         with:
           name: modules-artifact
-          path: /workspace/SPT/Build/release/
+          path: release/
 
       - name: Download Launcher Artifact
         uses: actions/download-artifact@v4
         with:
           name: launcher-artifact
-          path: /workspace/SPT/Build/release/
+          path: release/
 
       - name: Clone Build Project
         uses: actions/checkout@v4
         with:
-          path: /workspace/SPT/Build/build
+          repository: sp-tarkov/build
+          path: build
 
       - name: Merge Static Assets and Dynamic Files
         shell: bash
-        run: cp -rvf /workspace/SPT/Build/build/static-assets/* /workspace/SPT/Build/release/
+        run: cp -rvf build/static-assets/* release/
 
       - name: List Release Contents
         shell: bash
-        run: tree /workspace/SPT/Build/release
+        run: tree release
 
       - name: Generate Release Filename
         id: generate-filename
@@ -457,7 +458,7 @@ jobs:
         id: compress-release
         shell: bash
         run: |
-          cd /workspace/SPT/Build/release
+          cd release
           7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
           echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
 
@@ -480,8 +481,6 @@ jobs:
           R2_FRONT: ${{ secrets.R2_FRONT }}
         shell: bash
         run: |
-          cd /workspace/SPT/Build
-
           # Configure Rclone
           echo '[r2]
           type = s3
@@ -526,7 +525,6 @@ jobs:
         id: upload-https-7z
         shell: bash
         run: |
-          cd /workspace/SPT/Build/
           sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
           echo "link_https=${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}" >> $GITHUB_OUTPUT
 
@@ -538,7 +536,7 @@ jobs:
           mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
           mega-exec psa --discard
 
-          mega-put -c "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
+          mega-put -c "${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
 
           # Generate link and save it.
           EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
@@ -598,7 +596,6 @@ jobs:
           IS_NIGHTLY: ${{ needs.prepare.outputs.is_nightly }}
         shell: bash
         run: |
-          cd /workspace/SPT/Build/
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
           FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "Katalyst is the reason we can’t have nice things" "Katalyst voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe might be watching--Or coding--Probably both" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Stella is currently judging your grammar" "Stella just gave this embed a 6/10" "Waffle has entered the chat, and now it’s weird" "Waffle is too busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
