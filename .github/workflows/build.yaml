@@ -124,6 +124,7 @@ jobs:
             done
           fi
           echo "proceed=$PROCEED" >> $GITHUB_OUTPUT
+          echo "Matches found. Proceeding with build."
 
       - name: Tag Not Found
         if: steps.check-existence.outputs.proceed == 'false'
@@ -158,6 +159,9 @@ jobs:
 
           echo "client_version=$CLIENT_VERSION" >> $GITHUB_OUTPUT
           echo "spt_version=$SPT_VERSION" >> $GITHUB_OUTPUT
+
+          echo "Client version is $CLIENT_VERSION"
+          echo "SPT version is $SPT_VERSION"
 
       - name: Extract Mod Configurations
         id: mod-config
