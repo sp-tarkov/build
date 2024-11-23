@@ -675,5 +675,4 @@ jobs:
           curl -H "Content-Type: application/json" \
             -X POST \
             --data-binary @payload_discord.json \
-            -v \
             $DISCORD_WEBHOOK_URL
