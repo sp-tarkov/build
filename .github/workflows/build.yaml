@@ -454,6 +454,8 @@ jobs:
           echo "base_name=$BASE_NAME" >> $GITHUB_OUTPUT
           echo "build_name=${BASE_NAME}.7z" >> $GITHUB_OUTPUT
 
+          echo "Release filename: ${BASE_NAME}.7z"
+
       - name: Compress Release
         id: compress-release
         shell: bash
@@ -525,8 +527,9 @@ jobs:
         id: upload-https-7z
         shell: bash
         run: |
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "/workspace/SPT/Build/${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "${{ steps.generate-filename.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
           echo "link_https=${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}" >> $GITHUB_OUTPUT
+          echo "HTTPS Upload completed: ${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
 
       - name: Upload Release to Mega
         id: upload-mega
@@ -542,6 +545,7 @@ jobs:
           EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
           LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
           echo "link_mega=${LINK_MEGA}" >> $GITHUB_OUTPUT
+          echo "Mega Upload completed: $LINK_MEGA"
 
           mega-logout
 
