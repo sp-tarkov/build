@@ -48,9 +48,9 @@ jobs:
           echo "Determining build context..."
           if [[ "$EVENT_NAME" == "schedule" ]]; then
             echo "is_nightly=true" >> $GITHUB_OUTPUT
-            echo "branch_server=3.10.0-DEV" >> $GITHUB_OUTPUT
-            echo "branch_modules=310-dev" >> $GITHUB_OUTPUT
-            echo "branch_launcher=3.10.0-DEV" >> $GITHUB_OUTPUT
+            echo "branch_server=3.10.1-dev" >> $GITHUB_OUTPUT
+            echo "branch_modules=3.10.1-DEV" >> $GITHUB_OUTPUT
+            echo "branch_launcher=3.10.1-dev" >> $GITHUB_OUTPUT
             echo "Context is nightly build"
           else
             echo "is_nightly=false" >> $GITHUB_OUTPUT
