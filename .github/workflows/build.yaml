@@ -31,10 +31,6 @@ jobs:
       build_type: ${{ steps.determine-build-type.outputs.build_type }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
-      mod_enabled_bleeding: ${{ steps.mod-config.outputs.bleeding }}
-      mod_enabled_bleedingmods: ${{ steps.mod-config.outputs.bleedingmods }}
-      mod_enabled_debug: ${{ steps.mod-config.outputs.debug }}
-      mod_enabled_release: ${{ steps.mod-config.outputs.release }}
 
     steps:
       - name: Determine Build Context
@@ -48,9 +44,9 @@ jobs:
           echo "Determining build context..."
           if [[ "$EVENT_NAME" == "schedule" ]]; then
             echo "is_nightly=true" >> $GITHUB_OUTPUT
-            echo "branch_server=3.10.1-dev" >> $GITHUB_OUTPUT
-            echo "branch_modules=3.10.1-DEV" >> $GITHUB_OUTPUT
-            echo "branch_launcher=3.10.1-dev" >> $GITHUB_OUTPUT
+            echo "branch_server=4.0.0-DEV" >> $GITHUB_OUTPUT
+            echo "branch_modules=4.0.0-DEV" >> $GITHUB_OUTPUT
+            echo "branch_launcher=4.0.0-DEV" >> $GITHUB_OUTPUT
             echo "Context is nightly build"
           else
             echo "is_nightly=false" >> $GITHUB_OUTPUT
@@ -166,44 +162,6 @@ jobs:
 
           echo "Client version is $CLIENT_VERSION"
           echo "SPT version is $SPT_VERSION"
-
-      - name: Extract Mod Configurations
-        id: mod-config
-        shell: bash
-        run: |
-          rm -rf /workspace/SPT/Build/server-mods-config
-          git init /workspace/SPT/Build/server-mods-config
-          cd /workspace/SPT/Build/server-mods-config
-          git remote add origin https://github.com/sp-tarkov/server.git
-          git config core.sparseCheckout true
-
-          echo "project/src/ide/BleedingEdgeEntry.ts" >> .git/info/sparse-checkout
-          echo "project/src/ide/BleedingEdgeModsEntry.ts" >> .git/info/sparse-checkout
-          echo "project/src/ide/DebugEntry.ts" >> .git/info/sparse-checkout
-          echo "project/src/ide/ReleaseEntry.ts" >> .git/info/sparse-checkout
-
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            REF=${{ steps.determine-context.outputs.branch_server }}
-          else
-            REF=${{ steps.determine-context.outputs.target_tag }}
-          fi
-
-          git fetch --depth=1 origin "${REF}"
-          git checkout FETCH_HEAD
-
-          parse_mods_enabled() {
-            grep 'G_MODS_ENABLED' $1 | sed -e 's/.*G_MODS_ENABLED\s*=\s*\(.*\);/\1/'
-          }
-
-          MODS_BLEEDING=$(parse_mods_enabled "project/src/ide/BleedingEdgeEntry.ts")
-          MODS_BLEEDINGMODS=$(parse_mods_enabled "project/src/ide/BleedingEdgeModsEntry.ts")
-          MODS_DEBUG=$(parse_mods_enabled "project/src/ide/DebugEntry.ts")
-          MODS_RELEASE=$(parse_mods_enabled "project/src/ide/ReleaseEntry.ts")
-
-          echo "bleeding=$MODS_BLEEDING" >> $GITHUB_OUTPUT
-          echo "bleedingmods=$MODS_BLEEDINGMODS" >> $GITHUB_OUTPUT
-          echo "debug=$MODS_DEBUG" >> $GITHUB_OUTPUT
-          echo "release=$MODS_RELEASE" >> $GITHUB_OUTPUT
 
   build-server:
     needs: prepare
@@ -597,10 +555,6 @@ jobs:
           FILE_HASH: ${{ steps.compress-release.outputs.file_hash }}
           LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
           LINK_HTTPS: ${{ steps.upload-https-7z.outputs.link_https }}
-          MODS_ENABLED_BLEEDING: ${{ needs.prepare.outputs.mod_enabled_bleeding }}
-          MODS_ENABLED_BLEEDINGMODS: ${{ needs.prepare.outputs.mod_enabled_bleedingmods }}
-          MODS_ENABLED_DEBUG: ${{ needs.prepare.outputs.mod_enabled_debug }}
-          MODS_ENABLED_RELEASE: ${{ needs.prepare.outputs.mod_enabled_release }}
           IS_NIGHTLY: ${{ needs.prepare.outputs.is_nightly }}
         shell: bash
         run: |
@@ -613,31 +567,25 @@ jobs:
           if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             EMBED_COLOR=16705372
             EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
-            MODS="$MODS_ENABLED_BLEEDINGMODS"
+            MODS='enabled'
           else
             if [ "$BUILD_TYPE" == "bleeding" ]; then
               EMBED_COLOR=15548997
               EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
-              MODS="$MODS_ENABLED_BLEEDING"
+              MODS='disabled'
             elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
               EMBED_COLOR=15548997
               EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
-              MODS="$MODS_ENABLED_BLEEDINGMODS"
+              MODS='enabled'
             elif [ "$BUILD_TYPE" == "debug" ]; then
               EMBED_COLOR=2123412
               EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
-              MODS="$MODS_ENABLED_DEBUG"
+              MODS='enabled'
             else
               EMBED_COLOR=5763719
               EMBED_DESCRIPTION=$'A new stable build is now ready for download. 7-Zip is *required* to extract the release. Have fun! 🎉'
-              MODS="$MODS_ENABLED_RELEASE"
+              MODS='enabled'
             fi
-          fi
-
-          if [[ "$MODS" == "true" ]]; then
-            MODS="enabled"
-          elif [[ "$MODS" == "false" ]]; then
-            MODS="disabled"
           fi
 
           fields_json='[
