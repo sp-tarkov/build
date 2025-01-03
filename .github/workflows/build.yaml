@@ -166,57 +166,68 @@ jobs:
   build-server:
     needs: prepare
     if: needs.prepare.outputs.proceed == 'true'
-    runs-on: ubuntu-latest
-    container:
-      image: refringe/spt-build-node:1.0.9
+    runs-on: windows-latest
     outputs:
-      server_commit: ${{ steps.clone-server.outputs.server_commit }}
+      server_commit: ${{ steps.commit-hash.outputs.hash }}
     steps:
-      - name: Clone Server
-        id: clone-server
-        shell: bash
+      - name: Setup Git Target
+        shell: pwsh
         run: |
-          rm -rf /workspace/SPT/Build/server
-          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            BRANCH=${{ needs.prepare.outputs.branch_server }}
-            echo "Cloning branch $BRANCH"
-            git clone https://github.com/sp-tarkov/server.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/server
-          else
-            TAG=${{ needs.prepare.outputs.target_tag }}
-            echo "Cloning tag $TAG"
-            git clone https://github.com/sp-tarkov/server.git --branch "$TAG" --depth 1 /workspace/SPT/Build/server
-          fi
+          if ("${{ needs.prepare.outputs.is_nightly }}" -eq "true") {
+            echo "TARGET=${{ needs.prepare.outputs.branch_server }}" >> $env:GITHUB_ENV
+          }
+          else {
+            echo "TARGET=${{ needs.prepare.outputs.target_tag }}" >> $env:GITHUB_ENV
+          }
+          Write-Host "Cloning target: ${{ env.TARGET }}"
 
-          cd /workspace/SPT/Build/server
-          echo "server_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET }}
+          lfs: false
+          path: 'SPT/Build/server'
 
-      - name: Pull LFS Files
-        shell: bash
-        run: |
-          cd /workspace/SPT/Build/server
-          git lfs install --local
-          git lfs pull
+      - name: Pull LFS
+        run: git lfs pull
+        shell: pwsh
+        working-directory: ./SPT/Build/server
 
-      - name: Install Dependencies
-        shell: bash
-        run: |
-          cd /workspace/SPT/Build/server/project
-          npm install
+      - name: Output Commit Hash
+        id: commit-hash
+        shell: pwsh
+        run: Write-Host ("hash=" + (git rev-parse --short HEAD)) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        working-directory: ./SPT/Build/server
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: "SPT/Build/server/project/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "SPT/Build/server/project/package.json"
+
+      - name: Check NPM Cache
+        id: cache-check
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('SPT/Build/server/project/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install NPM Dependencies
+        if: steps.cache-check.outputs.cache-hit != 'true'
+        run: npm install
+        working-directory: ./SPT/Build/server/project
 
       - name: Build Server
-        shell: bash
-        run: |
-          cd /workspace/SPT/Build/server/project
-          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
-          echo "Running build for $BUILD_TYPE"
-          npm run build:$BUILD_TYPE -- --arch=x64 --platform=win32
-          printf "\nBuilt!\n\n"
+        shell: pwsh
+        run: npm run build:${{ needs.prepare.outputs.build_type }} -- --arch=x64 --platform=win32
+        working-directory: ./SPT/Build/server/project
 
       - name: Upload Server Artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-artifact
-          path: /workspace/SPT/Build/server/project/build/
+          path: ./SPT/Build/server/project/build/
           retention-days: 1
           if-no-files-found: error
 
