@@ -181,17 +181,30 @@ jobs:
           }
           Write-Host "Cloning target: ${{ env.TARGET }}"
 
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.TARGET }}
-          fetch-tags: true
-          lfs: false
-          path: 'SPT/Build/server'
-
-      - name: Pull LFS
-        run: git lfs pull
+      - name: Clone Server
         shell: pwsh
-        working-directory: ./SPT/Build/server
+        run: |
+          # If found, remove any existing folder from a previous run
+          $serverPath = "$env:GITHUB_WORKSPACE\SPT\Build\server"
+          if (Test-Path $serverPath) {
+              Remove-Item -Recurse -Force $serverPath
+          }
+
+          # Clone the server repo
+          git clone --depth=1 https://github.com/sp-tarkov/server.git $serverPath
+
+          # Move into the cloned repo
+          Set-Location $serverPath
+
+          # Fetch tags if needed
+          git fetch --tags
+
+          # Checkout the ref (branch or tag) from $env.TARGET
+          git checkout $env:TARGET
+
+          # Install LFS and pull files
+          git lfs install --local
+          git lfs pull
 
       - name: Output Commit Hash
         id: commit-hash
