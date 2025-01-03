@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            BUILD_TYPE="bleedingmods"
+            BUILD_TYPE="bleeding"
           else
             TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
             TARGET_TAG_UPPER="${TARGET_TAG^^}"
