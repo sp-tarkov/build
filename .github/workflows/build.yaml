@@ -20,7 +20,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.9
+      image: refringe/spt-build-node:1.1.0
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
@@ -369,7 +369,7 @@ jobs:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.0.9
+      image: refringe/spt-build-node:1.1.0
     steps:
       - name: Clean Directory
         shell: bash
@@ -524,58 +524,6 @@ jobs:
           echo "link_https=${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}" >> $GITHUB_OUTPUT
           echo "HTTPS Upload completed: ${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.generate-filename.outputs.build_name }}"
 
-      - name: Upload Release to Mega
-        id: upload-mega
-        shell: bash
-        run: |
-          mega-https on
-          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-          mega-exec psa --discard
-
-          mega-put -c "${{ steps.generate-filename.outputs.build_name }}" "/spt-release/${{ steps.generate-filename.outputs.build_name }}"
-
-          # Generate link and save it.
-          EXPORT_OUTPUT=$(mega-export -a "/spt-release/${{ steps.generate-filename.outputs.build_name }}" -f)
-          LINK_MEGA=$(echo "$EXPORT_OUTPUT" | grep -o 'https://mega.nz/file/[A-Za-z0-9#_\-]*')
-          echo "link_mega=${LINK_MEGA}" >> $GITHUB_OUTPUT
-          echo "Mega Upload completed: $LINK_MEGA"
-
-          mega-logout
-
-      - name: Clean Old Mega Releases
-        shell: bash
-        run: |
-          mega-https on
-          mega-login "${{ secrets.MEGA_EMAIL }}" "${{ secrets.MEGA_PASSWORD }}"
-          mega-exec psa --discard
-
-          echo "Finding old, non-release type files..."
-
-          mega-find /spt-release \
-            --type=f \
-            --pattern='SPT-(NIGHTLY|DEBUG|BLEEDING|BLEEDINGMODS).*\.7z' \
-            --use-pcre \
-            --mtime=+14d > old_files.txt
-
-          # Check if any old files were found
-          if [ -s old_files.txt ]; then
-            echo "Old files found:"
-            cat old_files.txt
-
-            # Delete each file listed in old_files.txt
-            while read -r filepath; do
-              echo "Deleting old file: $filepath"
-              mega-rm "$filepath"
-            done < old_files.txt
-          else
-            echo "No old files found."
-          fi
-
-          # Remove old file versions to save space.
-          mega-deleteversions -f /spt-release/*
-
-          mega-logout
-
       - name: Post Build Info to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -584,33 +532,32 @@ jobs:
           BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
           FILE_SIZE_MB: ${{ steps.compress-release.outputs.file_size_mb }}
           FILE_HASH: ${{ steps.compress-release.outputs.file_hash }}
-          LINK_MEGA: ${{ steps.upload-mega.outputs.link_mega }}
           LINK_HTTPS: ${{ steps.upload-https-7z.outputs.link_https }}
           IS_NIGHTLY: ${{ needs.prepare.outputs.is_nightly }}
         shell: bash
         run: |
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-          FOOTER_MESSAGES=("You look great today!" "Don't ban me, Phantom!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "Katalyst is the reason we can’t have nice things" "Katalyst voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe might be watching--Or coding--Probably both" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Stella is currently judging your grammar" "Stella just gave this embed a 6/10" "Waffle has entered the chat, and now it’s weird" "Waffle is too busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
+          FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Life's too short to remove USB safely" "Did you remember to hydrate today?" "Have you tried turning it off and on again?" "There's no place like 127.0.0.1" "In Chomp we trust" "Beep boop, I'm a bot" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature." "May the source be with you" "Go to bed, Terk" "Please direct all support requests to Drakia" "Meaw" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "Cabbit is the reason we can’t have nice things" "Cabbit voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe is watching" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Stella is currently judging your grammar" "Stella just gave this embed a 6/10" "Waffle has entered the chat, and now it’s weird" "Waffle is too busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
           TIMESTAMP=$(date --iso-8601=seconds)
           MODS=""
 
           if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
             EMBED_COLOR=16705372
-            EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release.'
+            EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release. The download link is temporary.'
             MODS='enabled'
           else
             if [ "$BUILD_TYPE" == "bleeding" ]; then
               EMBED_COLOR=15548997
-              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
+              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='disabled'
             elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
               EMBED_COLOR=15548997
-              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release.'
+              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='enabled'
             elif [ "$BUILD_TYPE" == "debug" ]; then
               EMBED_COLOR=2123412
-              EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release.'
+              EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='enabled'
             else
               EMBED_COLOR=5763719
@@ -625,8 +572,7 @@ jobs:
             {"name": "Mods", "value": "'"$MODS"'", "inline": true},
             {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
             {"name": "File Hash", "value": "'"$FILE_HASH"'"},
-            {"name": "Download", "value": "'"$LINK_MEGA"'"},
-            {"name": "Mirror", "value": "'"$LINK_HTTPS"'"}
+            {"name": "Download", "value": "'"$LINK_HTTPS"'"}
           ]'
 
           payload=$(jq -n \
