@@ -84,7 +84,7 @@ jobs:
               BUILD_TYPE="bleeding" # CHOMP! KEK
             elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
               BUILD_TYPE="bleeding"
-            elif [[ "$TARGET_TAG_UPPER" =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               BUILD_TYPE="release"
             fi
           fi
