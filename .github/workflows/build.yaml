@@ -180,7 +180,6 @@ jobs:
           else {
             echo "TARGET=${{ needs.prepare.outputs.target_tag }}" >> $env:GITHUB_ENV
           }
-          Write-Host "Cloning target: ${{ env.TARGET }}"
 
       - name: Clone Server
         shell: pwsh
@@ -197,7 +196,7 @@ jobs:
               $TARGET = "${{ needs.prepare.outputs.target_tag }}"
           }
 
-          Write-Host "Cloning: $TARGET"
+          Write-Host "Cloning target: $TARGET"
           git clone https://github.com/sp-tarkov/server.git --branch $TARGET --depth 1 $serverPath
 
           # Pull LFS files.
