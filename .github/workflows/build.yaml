@@ -185,25 +185,23 @@ jobs:
       - name: Clone Server
         shell: pwsh
         run: |
-          # If found, remove any existing folder from a previous run
           $serverPath = "$env:GITHUB_WORKSPACE\SPT\Build\server"
+          # Delete old remnants of the last build.
           if (Test-Path $serverPath) {
               Remove-Item -Recurse -Force $serverPath
           }
+          # Decide which ref to clone.
+          if ("${{ needs.prepare.outputs.is_nightly }}" -eq "true") {
+              $TARGET = "${{ needs.prepare.outputs.branch_server }}"
+          } else {
+              $TARGET = "${{ needs.prepare.outputs.target_tag }}"
+          }
 
-          # Clone the server repo
-          git clone --depth=1 https://github.com/sp-tarkov/server.git $serverPath
+          Write-Host "Cloning: $TARGET"
+          git clone https://github.com/sp-tarkov/server.git --branch $TARGET --depth 1 $serverPath
 
-          # Move into the cloned repo
+          # Pull LFS files.
           Set-Location $serverPath
-
-          # Fetch tags if needed
-          git fetch --tags
-
-          # Checkout the ref (branch or tag) from $env.TARGET
-          git checkout $env:TARGET
-
-          # Install LFS and pull files
           git lfs install --local
           git lfs pull
 
@@ -219,22 +217,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: "SPT/Build/server/project/package.json"
 
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        shell: pwsh
-        run: echo "dir=$(npm config get cache)" >> ${env:GITHUB_OUTPUT}
-
-      - name: Check NPM Cache
-        id: cache-check
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install NPM Dependencies
-        if: steps.cache-check.outputs.cache-hit != 'true'
         run: npm install
         working-directory: ./SPT/Build/server/project
 
