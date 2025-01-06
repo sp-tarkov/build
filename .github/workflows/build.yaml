@@ -1,8 +1,8 @@
 name: SPT Release Build
 
 on:
-  schedule:
-    - cron: "0 4 * * *" # Nightly should trigger at 4am UTC (11pm EST).
+  #schedule:
+  #  - cron: "0 4 * * *" # Nightly should trigger at 4am UTC (11pm EST).
   repository_dispatch:
     types: [build-trigger]
   workflow_dispatch:
