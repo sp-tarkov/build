@@ -80,8 +80,7 @@ jobs:
 
             BUILD_TYPE="debug"
             if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
-              #BUILD_TYPE="bleedingmods"
-              BUILD_TYPE="bleeding" # CHOMP! KEK
+              BUILD_TYPE="bleedingmods"
             elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
               BUILD_TYPE="bleeding"
             elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
