@@ -1,10 +1,6 @@
-name: SPT Release Build
+name: SPT Release Build - C#
 
 on:
-  #schedule:
-  #  - cron: "0 4 * * *" # Nightly should trigger at 4am UTC (11pm EST).
-  repository_dispatch:
-    types: [build-trigger]
   workflow_dispatch:
     inputs:
       buildTag:
@@ -13,17 +9,16 @@ on:
         type: string
 
 concurrency:
-  group: spt-release-build
+  group: spt-release-build-sharp
   cancel-in-progress: true
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.1.0
+      image: refringe/spt-build-dotnet:2.0.2
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
-      is_nightly: ${{ steps.determine-context.outputs.is_nightly }}
       branch_server: ${{ steps.determine-context.outputs.branch_server }}
       branch_modules: ${{ steps.determine-context.outputs.branch_modules }}
       branch_launcher: ${{ steps.determine-context.outputs.branch_launcher }}
@@ -36,64 +31,46 @@ jobs:
       - name: Determine Build Context
         id: determine-context
         shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          CLIENT_PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
-          WORKFLOW_INPUT_TAG: ${{ github.event.inputs.buildTag }}
         run: |
           echo "Determining build context..."
-          if [[ "$EVENT_NAME" == "schedule" ]]; then
-            echo "is_nightly=true" >> $GITHUB_OUTPUT
-            echo "branch_server=4.0.0-DEV" >> $GITHUB_OUTPUT
-            echo "branch_modules=4.0.0-DEV" >> $GITHUB_OUTPUT
-            echo "branch_launcher=4.0.0-DEV" >> $GITHUB_OUTPUT
-            echo "Context is nightly build"
+
+          # Determine the tag based on the event type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG_NAME="${{ github.event.inputs.buildTag }}"
+          elif [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            TAG_NAME="${{ github.event.client_payload.tag }}"
           else
-            echo "is_nightly=false" >> $GITHUB_OUTPUT
-            # Determine the tag based on the event type
-            if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-              TAG_NAME="$WORKFLOW_INPUT_TAG"
-            elif [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
-              TAG_NAME="$CLIENT_PAYLOAD_TAG"
-            else
-              echo "Unsupported event: $EVENT_NAME"
-              exit 1
-            fi
-
-            if [[ -z "$TAG_NAME" ]]; then
-              echo "No tag provided in event payload."
-              exit 1
-            fi
-
-            # Halt the workflow if TAG_NAME starts with "4" or "v4"
-            if [[ "$TAG_NAME" == 4* || "$TAG_NAME" == v4* ]]; then
-              echo "Error: Tag name $TAG_NAME starts with 4. Unsupported version detected."
-              exit 1
-            fi
-
-            echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
-            echo "Target tag is $TAG_NAME"
+            echo "Unsupported event: ${{ github.event_name }}"
+            exit 1
           fi
+
+          if [[ -z "$TAG_NAME" ]]; then
+            echo "No tag provided in event payload."
+            exit 1
+          fi
+
+          echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Target tag is $TAG_NAME"
 
       - name: Determine Build Type
         id: determine-build-type
         shell: bash
         run: |
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            BUILD_TYPE="bleeding"
-          else
-            TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
-            TARGET_TAG_UPPER="${TARGET_TAG^^}"
+          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+          TARGET_TAG_UPPER="${TARGET_TAG^^}"
 
-            BUILD_TYPE="debug"
-            if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
-              BUILD_TYPE="bleedingmods"
-            elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
-              BUILD_TYPE="bleeding"
-            elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              BUILD_TYPE="release"
-            fi
-          fi
+          # For the time being, all releases are treated as Release builds.
+          BUILD_TYPE="Release"
+
+          #BUILD_TYPE="Debug"
+          #if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
+          #  BUILD_TYPE="Bleedingmods"
+          #elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
+          #  BUILD_TYPE="Bleeding"
+          #elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          #  BUILD_TYPE="Release"
+          #fi
+
           echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
           echo "Build type is $BUILD_TYPE"
 
@@ -102,36 +79,17 @@ jobs:
         shell: bash
         run: |
           PROCEED="true"
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            declare -A BRANCHES=(
-              [Server]="https://github.com/sp-tarkov/server.git@${{ steps.determine-context.outputs.branch_server }}"
-              [Modules]="https://github.com/sp-tarkov/modules.git@${{ steps.determine-context.outputs.branch_modules }}"
-              [Launcher]="https://github.com/sp-tarkov/launcher.git@${{ steps.determine-context.outputs.branch_launcher }}"
-            )
-            for REPO_NAME in "${!BRANCHES[@]}"; do
-              REPO_URL="${BRANCHES[$REPO_NAME]%@*}"
-              BRANCH="${BRANCHES[$REPO_NAME]##*@}"
-              echo "Checking for branch $BRANCH in $REPO_NAME..."
-              if ! git ls-remote --heads $REPO_URL $BRANCH | grep -q $BRANCH; then
-                echo "Branch $BRANCH not found in $REPO_URL"
-                PROCEED="false"
-                break
-              fi
-            done
-          else
-            TAG="${{ steps.determine-context.outputs.target_tag }}"
-            REPOS=("https://github.com/sp-tarkov/server.git" "https://github.com/sp-tarkov/modules.git" "https://github.com/sp-tarkov/launcher.git")
-            for REPO in "${REPOS[@]}"; do
-              echo "Checking for tag $TAG in $REPO..."
-              if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
-                echo "Tag $TAG not found in $REPO"
-                PROCEED="false"
-                break
-              fi
-            done
-          fi
+          TAG="${{ steps.determine-context.outputs.target_tag }}"
+          REPOS=("https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git" "https://github.com/sp-tarkov/modules.git" "https://github.com/sp-tarkov/launcher.git")
+          for REPO in "${REPOS[@]}"; do
+            echo "Checking for tag $TAG in $REPO..."
+            if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
+              echo "Tag $TAG not found in $REPO"
+              PROCEED="false"
+              break
+            fi
+          done
           echo "proceed=$PROCEED" >> $GITHUB_OUTPUT
-          echo "Matches found. Proceeding with build."
 
       - name: Tag Not Found
         if: steps.check-existence.outputs.proceed == 'false'
@@ -143,23 +101,17 @@ jobs:
         id: versions
         shell: bash
         run: |
-          rm -rf /workspace/SPT/Build/server-core
-          git init /workspace/SPT/Build/server-core
-          cd /workspace/SPT/Build/server-core
-          git remote add origin https://github.com/sp-tarkov/server.git
+          rm -rf /workspace/SPT/Build/server-csharp-core
+          git init /workspace/SPT/Build/server-csharp-core
+          cd /workspace/SPT/Build/server-csharp-core
+          git remote add origin https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git
           git config core.sparseCheckout true
-          echo "project/assets/configs/core.json" >> .git/info/sparse-checkout
+          echo "Libraries/SPTarkov.Server.Assets/Assets/configs/core.json" >> .git/info/sparse-checkout
 
-          if [[ "${{ steps.determine-context.outputs.is_nightly }}" == "true" ]]; then
-            REF=${{ steps.determine-context.outputs.branch_server }}
-          else
-            REF=${{ steps.determine-context.outputs.target_tag }}
-          fi
-
-          git fetch --depth=1 origin "${REF}"
+          git fetch --depth=1 origin "${{ steps.determine-context.outputs.target_tag }}"
           git checkout FETCH_HEAD
 
-          cd project/assets/configs
+          cd Libraries/SPTarkov.Server.Assets/Assets/configs
           SPT_VERSION=$(jq -r '.sptVersion' core.json)
           FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
           CLIENT_VERSION=${FULL_VERSION##*.}
@@ -173,70 +125,53 @@ jobs:
   build-server:
     needs: prepare
     if: needs.prepare.outputs.proceed == 'true'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    container:
+      image: refringe/spt-build-dotnet:2.0.2
     outputs:
       server_commit: ${{ steps.commit-hash.outputs.server_commit }}
     steps:
-      - name: Setup Git Target
-        shell: pwsh
-        run: |
-          if ("${{ needs.prepare.outputs.is_nightly }}" -eq "true") {
-            echo "TARGET=${{ needs.prepare.outputs.branch_server }}" >> $env:GITHUB_ENV
-          }
-          else {
-            echo "TARGET=${{ needs.prepare.outputs.target_tag }}" >> $env:GITHUB_ENV
-          }
-
       - name: Clone Server
-        shell: pwsh
+        shell: bash
         run: |
-          $serverPath = "$env:GITHUB_WORKSPACE\SPT\Build\server"
+          serverPath="$GITHUB_WORKSPACE/SPT/Build/server-csharp"
+
           # Delete old remnants of the last build.
-          if (Test-Path $serverPath) {
-              Remove-Item -Recurse -Force $serverPath
-          }
-          # Decide which ref to clone.
-          if ("${{ needs.prepare.outputs.is_nightly }}" -eq "true") {
-              $TARGET = "${{ needs.prepare.outputs.branch_server }}"
-          } else {
-              $TARGET = "${{ needs.prepare.outputs.target_tag }}"
-          }
+          if [ -d "$serverPath" ]; then
+              rm -rf "$serverPath"
+          fi
 
-          Write-Host "Cloning target: $TARGET"
-          git clone https://github.com/sp-tarkov/server.git --branch $TARGET --depth 1 $serverPath
-
+          TARGET="${{ needs.prepare.outputs.target_tag }}"
+  
+          echo "Cloning target: $TARGET"
+          git clone https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git --branch "$TARGET" --depth 1 "$serverPath"
+  
           # Pull LFS files.
-          Set-Location $serverPath
+          cd "$serverPath"
           git lfs install --local
           git lfs pull
 
       - name: Output Commit Hash
         id: commit-hash
-        shell: pwsh
-        run: echo "server_commit=$(git rev-parse --short HEAD)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-        working-directory: ./SPT/Build/server
+        shell: bash
+        run: echo "server_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        working-directory: SPT/Build/server-csharp
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: "SPT/Build/server/project/.nvmrc"
-          cache: "npm"
-          cache-dependency-path: "SPT/Build/server/project/package.json"
-
-      - name: Install NPM Dependencies
-        run: npm install
-        working-directory: ./SPT/Build/server/project
-
-      - name: Build Server
-        shell: pwsh
-        run: npm run build:${{ needs.prepare.outputs.build_type }} -- --arch=x64 --platform=win32
-        working-directory: ./SPT/Build/server/project
+      - name: Publish Server
+        shell: bash
+        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c ${{ needs.prepare.outputs.build_type }} -f net9.0 -r win-x64 /p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false
+        working-directory: SPT/Build/server-csharp
 
       - name: Upload Server Artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-artifact
-          path: ./SPT/Build/server/project/build/
+          path: |
+            SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/
+            !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/**/*.pdb
+          compression-level: 0
           retention-days: 1
+          overwrite: true
           if-no-files-found: error
 
   build-modules:
@@ -244,34 +179,27 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:1.0.0
+      image: refringe/spt-build-dotnet:2.0.2
     steps:
       - name: Clone Modules
         id: clone-modules
         shell: bash
         run: |
           rm -rf /workspace/SPT/Build/modules
-          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            BRANCH=${{ needs.prepare.outputs.branch_modules }}
-            echo "Cloning modules from branch $BRANCH"
-            git clone https://github.com/sp-tarkov/modules.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/modules
-          else
-            TAG=${{ needs.prepare.outputs.target_tag }}
-            echo "Cloning modules from tag $TAG"
-            git clone https://github.com/sp-tarkov/modules.git --branch "$TAG" --depth 1 /workspace/SPT/Build/modules
-          fi
+
+          TAG=${{ needs.prepare.outputs.target_tag }}
+          echo "Cloning modules from tag $TAG"
+          git clone https://github.com/sp-tarkov/modules.git --branch "$TAG" --depth 1 /workspace/SPT/Build/modules
 
           cd /workspace/SPT/Build/modules
           echo "modules_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Download Client Module Package
         shell: bash
-        env:
-          MODULE_DOMAIN: ${{ secrets.MODULE_DOMAIN }}
         run: |
           DIR_MANAGED="/workspace/SPT/Build/modules/project/Shared/Managed"
           DOWNLOAD_PATH="$DIR_MANAGED/${{ needs.prepare.outputs.client_version }}.7z"
-          DOWNLOAD_URL="${MODULE_DOMAIN}/${{ needs.prepare.outputs.client_version }}.7z"
+          DOWNLOAD_URL="${{ secrets.MODULE_DOMAIN }}/${{ needs.prepare.outputs.client_version }}.7z"
           echo "Downloading Client Module Package from $DOWNLOAD_URL to $DOWNLOAD_PATH"
           mkdir -p "$DIR_MANAGED"
           wget -q -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL" || {
@@ -310,7 +238,9 @@ jobs:
         with:
           name: modules-artifact
           path: /workspace/SPT/Build/modules/project/Build
+          compression-level: 0
           retention-days: 1
+          overwrite: true
           if-no-files-found: error
 
   build-launcher:
@@ -318,22 +248,17 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:1.0.0
+      image: refringe/spt-build-dotnet:2.0.2
     steps:
       - name: Clone Launcher
         id: clone-launcher
         shell: bash
         run: |
           rm -rf /workspace/SPT/Build/launcher
-          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            BRANCH=${{ needs.prepare.outputs.branch_launcher }}
-            echo "Cloning launcher from branch $BRANCH"
-            git clone https://github.com/sp-tarkov/launcher.git --branch "$BRANCH" --depth 1 /workspace/SPT/Build/launcher
-          else
-            TAG=${{ needs.prepare.outputs.target_tag }}
-            echo "Cloning launcher from tag $TAG"
-            git clone https://github.com/sp-tarkov/launcher.git --branch "$TAG" --depth 1 /workspace/SPT/Build/launcher
-          fi
+
+          TAG=${{ needs.prepare.outputs.target_tag }}
+          echo "Cloning launcher from tag $TAG"
+          git clone https://github.com/sp-tarkov/launcher.git --branch "$TAG" --depth 1 /workspace/SPT/Build/launcher
 
           cd /workspace/SPT/Build/launcher
           echo "launcher_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
@@ -350,14 +275,16 @@ jobs:
         with:
           name: launcher-artifact
           path: /workspace/SPT/Build/launcher/project/Build
+          compression-level: 0
           retention-days: 1
+          overwrite: true
           if-no-files-found: error
 
   assemble-and-publish:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-node:1.1.0
+      image: refringe/spt-build-dotnet:2.0.2
     steps:
       - name: Clean Directory
         shell: bash
@@ -452,7 +379,7 @@ jobs:
           echo "file_hash=$FILE_HASH" >> $GITHUB_OUTPUT
 
       - name: R2 Upload
-        if: needs.prepare.outputs.build_type == 'release'
+        if: needs.prepare.outputs.build_type == 'Release-LUL'
         env:
           SPT_VERSION: ${{ needs.prepare.outputs.spt_version }}
           CLIENT_VERSION: ${{ needs.prepare.outputs.client_version }}
@@ -484,25 +411,29 @@ jobs:
             }]
           }" > ./release.json
 
-          echo "Current Local Directory:"
-          ls -lah
+          # Everything below this line has been commented out for saftey. This is a safety measure to prevent accidental
+          # uploads to the R2 bucket WHICH WILL OVERWRITE THE EXISTING RELEASE AND PUSH IT TO THE LIVE LAUNCHER.
+          # The if statement for this step will need to be adjusted as well.
 
-          echo "Current Remote Directory:"
-          rclone ls r2:${R2_BUCKET_NAME} --config ./rclone.conf
+          #echo "Current Local Directory:"
+          #ls -lah
+
+          #echo "Current Remote Directory:"
+          #rclone ls r2:${R2_BUCKET_NAME} --config ./rclone.conf
 
           # Remove old .7z files from the bucket
-          rclone lsf r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
-          echo "Files to be deleted:"
-          cat files-to-remove.txt
-          rclone delete r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-from=files-to-remove.txt --max-depth=1 -vv
+          #rclone lsf r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
+          #echo "Files to be deleted:"
+          #cat files-to-remove.txt
+          #rclone delete r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-from=files-to-remove.txt --max-depth=1 -vv
 
           # Upload the .7z file using rclone with the above config
-          rclone copy "./${{ steps.generate-filename.outputs.build_name }}" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
+          #rclone copy "./${{ steps.generate-filename.outputs.build_name }}" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
 
           # Upload the JSON file using rclone with the above config
-          rclone copy "./release.json" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
+          #rclone copy "./release.json" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
 
-          echo "R2 Upload completed."
+          #echo "R2 Upload completed."
 
       - name: Upload Release to HTTPS Source
         id: upload-https-7z
@@ -514,7 +445,7 @@ jobs:
 
       - name: Post Build Info to Discord
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_SHARP_URL }}
           BUILD_TYPE: ${{ needs.prepare.outputs.build_type }}
           BASE_NAME: ${{ steps.generate-filename.outputs.base_name }}
           BUILD_NAME: ${{ steps.generate-filename.outputs.build_name }}
@@ -549,7 +480,7 @@ jobs:
               MODS='enabled'
             else
               EMBED_COLOR=5763719
-              EMBED_DESCRIPTION=$'A new stable build is now ready for download. 7-Zip is *required* to extract the release. Have fun! 🎉'
+              EMBED_DESCRIPTION=$'A new *release* build has been published. Get to testing, nerds.'
               MODS='enabled'
             fi
           fi

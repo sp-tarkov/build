@@ -1,14 +1,12 @@
 # SPT Build Project - CI/CD Overview
 
-This guide outlines the Continuous Integration (CI) and Continuous Deployment (CD) setup for the SPT-AKI project. It automates and streamlines processes across three key repositories: [SPT-AKI/Server](https://dev.sp-tarkov.com/SPT-AKI/Server), [SPT-AKI/Modules](https://dev.sp-tarkov.com/SPT-AKI/Modules), and [SPT-AKI/Launcher](https://dev.sp-tarkov.com/SPT-AKI/Launcher), utilizing Gitea Actions for efficient operations.
-
-**Why Gitea Actions?** Gitea Actions integrates directly with our workflow, automating the compile, build, and deployment phases. This ensures every update is processed accurately and deployed swiftly, minimizing manual effort and error potential.
+This guide outlines the Continuous Integration (CI) and Continuous Deployment (CD) setup for the SPT project. It automates and streamlines processes across three key repositories: [sp-tarkov/server](https://github.com/sp-tarkov/server), [sp-tarkov/modules](https://github.com/sp-tarkov/modules), and [sp-tarkov/launcher](https://github.com/sp-tarkov/launcher), utilizing GitHub Actions for efficient operations.
 
 The following sections detail our CI/CD pipeline, highlighting how each update moves from development through to deployment, ensuring consistency and reliability in the build process.
 
 ## Understanding the CI/CD Pipeline
 
-The CI/CD pipeline of the SPT-AKI project is engineered for tag-based release builds, navigating the complexity of synchronizing three distinct repositories. The pipeline operates through several key stages:
+The CI/CD pipeline of the SPT project is engineered for tag-based release builds, navigating the complexity of synchronizing three distinct repositories. The pipeline operates through several key stages:
 
 1. **Tag Verification**: Confirms the presence of a specific tag across all three project repositories.
 2. **Repository Cloning**: Retrieves the repositories at their respective tagged states, ensuring that the build reflects the exact version intended for release.
@@ -19,7 +17,7 @@ The CI/CD pipeline of the SPT-AKI project is engineered for tag-based release bu
 
 ## Tagging Strategy and Build Types
 
-The CI/CD pipeline of the SPT-AKI project uses specific tagging conventions to trigger different types of builds. This allows for a more nuanced approach to building and deploying code. Below is an explanation of the build types recognized by the workflow and the tagging required for each.
+The CI/CD pipeline of the SPT project uses specific tagging conventions to trigger different types of builds. This allows for a more nuanced approach to building and deploying code. Below is an explanation of the build types recognized by the workflow and the tagging required for each.
 
 ### Release Builds
 - **Tagging Convention**: Semantic versioning (e.g., `v1.2.3` or `1.2.3`).
@@ -41,19 +39,9 @@ The CI/CD pipeline of the SPT-AKI project uses specific tagging conventions to t
 - **Description**: `debug` builds are intended for internal use, featuring extensive logging and debugging information. Stability is not even an afterthought.
 - **Use Case**: Development and troubleshooting, where detailed logs and error messages are essential for fixing bugs.
 
-### Nightly Builds
-- **Tagging Convention**: Scheduled triggers, not tag-based.
-- **Description**: `nightly` builds are created automatically based on a schedule, usually daily. These builds reflect the most current development progress and are useful for continuous testing. Not stable. Not supported.
-- **Use Case**: Ongoing testing and early detection of bugs or integration issues in the development phase.
-
 ## Project Repositories Configuration
 
-Each of the three main repositories (Modules, Server, Launcher) are equipped with a `.gitea/workflows/build-trigger.yaml` file. This workflow file is essential for triggering a build within *this* Build repository upon the push of a tag to any of the project repositories. The `build-trigger.yaml` workflow encompasses the following steps:
-
-1. Cloning of *this* Build repository.
-1. Creation and checkout of a dedicated `trigger` branch within *this* Build repository.
-1. Committing a `.gitea/trigger` file into the `trigger` branch, embedding the tag name used to start the build process.
-1. Forceful push of the `trigger` branch back to *this* origin `Build` repository to trigger the build process.
+Each of the three main repositories (Modules, Server, and Launcher) are equipped with a `.gitea/workflows/build-trigger.yaml` file. This workflow file is essential for triggering a build within *this* Build repository upon the push of a tag to any of the project repositories. The `build-trigger.yaml` workflow pushes a repository-dispatch event.
 
 ## Module Build Requirements
 
@@ -64,11 +52,7 @@ The build process for the Modules project necessitates access to a secured priva
 Prior to the assembly and distribution of Docker images, it is crucial to increment the version number to a new, unreleased value. Additionally, authentication with Docker Desktop is required to enable image pushing capabilities.
 
 ```
-# Command to build and push the spt-build-node Docker image to Docker Hub
-docker build -t refringe/spt-build-node:1.1.1 -t refringe/spt-build-node:latest -f Dockerfile.node .
-docker push refringe/spt-build-node --all-tags
-
 # Command to build and push the spt-build-dotnet Docker image to Docker Hub
-docker build -t refringe/spt-build-dotnet:1.0.1 -t refringe/spt-build-dotnet:latest -f Dockerfile.dotnet .
+docker build -t refringe/spt-build-dotnet:2.0.2 -t refringe/spt-build-dotnet:latest -f Dockerfile.dotnet . --platform linux/amd64
 docker push refringe/spt-build-dotnet --all-tags
 ```

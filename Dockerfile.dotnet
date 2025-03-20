@@ -1,18 +1,18 @@
-# Use the .NET 8.0 SDK base image
-FROM mcr.microsoft.com/dotnet/sdk:8.0
-
-# Configure Node.js v20 repository
-RUN curl -fsSL https://deb.nodesource.com/setup_20.10 | bash
+# Use the .NET 9.0 SDK base image
+FROM mcr.microsoft.com/dotnet/sdk:9.0
 
 # Install necessary tools and dependencies
 #  - git (duh)
+#  - git-lfs (duh)
 #  - zstd (caching action dependancy)
+#  - tree (pretty print build directory structure)
 #  - wget (downloading module packages)
 #  - jq (fetching data from JSON files)
 #  - p7zip-full (extracting archives)
-#  - nodejs (artifact action dependancy)
-#  - tree (pretty print build directory structure)
+#  - sshpass (for automated SSH authentication)
+#  - vim-common (for xxd command, for file hash process)
+#  - rclone (for R2 uploads)
 RUN apt-get update && \
-    apt-get install -y git zstd wget jq p7zip-full nodejs tree && \
+    apt-get install -y git git-lfs zstd tree wget jq p7zip-full sshpass vim-common rclone && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
