@@ -59,17 +59,14 @@ jobs:
           TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
           TARGET_TAG_UPPER="${TARGET_TAG^^}"
 
-          # For the time being, all releases are treated as Release builds.
-          BUILD_TYPE="Release"
-
-          #BUILD_TYPE="Debug"
-          #if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
-          #  BUILD_TYPE="Bleedingmods"
-          #elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
-          #  BUILD_TYPE="Bleeding"
-          #elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          #  BUILD_TYPE="Release"
-          #fi
+          BUILD_TYPE="DEBUG"
+          if [[ "$TARGET_TAG_UPPER" =~ -BEM ]]; then
+            BUILD_TYPE="BLEEDING_EDGE_MODS"
+          elif [[ "$TARGET_TAG_UPPER" =~ -BE ]]; then
+            BUILD_TYPE="BLEEDING_EDGE"
+          elif [[ "$TARGET_TAG_UPPER" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            BUILD_TYPE="RELEASE"
+          fi
 
           echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
           echo "Build type is $BUILD_TYPE"
@@ -159,7 +156,7 @@ jobs:
 
       - name: Publish Server
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c ${{ needs.prepare.outputs.build_type }} -f net9.0 -r win-x64 /p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false
+        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c Release -f net9.0 -r win-x64 -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false -p:SptBuildType=${{ needs.prepare.output.build_type }} -p:SptVersion=${{ needs.prepare.output.spt_version }} -p:SptBuildTime=${{ date +%Y%m%d }} -p:SptCommit=${{ server_commit }}
         working-directory: SPT/Build/server-csharp
 
       - name: Upload Server Artifact
@@ -341,7 +338,7 @@ jobs:
             UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
             UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
 
-            if [ "$BUILD_TYPE" = "release" ]; then
+            if [ "$BUILD_TYPE" = "RELEASE" ]; then
               BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
             else
               TAG_PART=""
@@ -466,15 +463,15 @@ jobs:
             EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release. The download link is temporary.'
             MODS='disabled'
           else
-            if [ "$BUILD_TYPE" == "bleeding" ]; then
+            if [ "$BUILD_TYPE" == "BLEEDING_EDGE" ]; then
               EMBED_COLOR=15548997
               EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='disabled'
-            elif [ "$BUILD_TYPE" == "bleedingmods" ]; then
+            elif [ "$BUILD_TYPE" == "BLEEDING_EDGE_MODS" ]; then
               EMBED_COLOR=15548997
               EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='enabled'
-            elif [ "$BUILD_TYPE" == "debug" ]; then
+            elif [ "$BUILD_TYPE" == "DEBUG" ]; then
               EMBED_COLOR=2123412
               EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release. The download link is temporary.'
               MODS='enabled'
