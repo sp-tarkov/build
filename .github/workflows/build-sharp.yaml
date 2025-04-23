@@ -315,7 +315,7 @@ jobs:
 
       - name: Merge Static Assets and Dynamic Files
         shell: bash
-        run: cp -rvf build/static-assets-csharp/* release/
+        run: cp -rvf build/static-assets-csharp/. release/
 
       - name: List Release Contents
         shell: bash
