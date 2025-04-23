@@ -319,7 +319,7 @@ jobs:
 
       - name: List Release Contents
         shell: bash
-        run: tree release
+        run: tree -a release
 
       - name: Generate Release Filename
         id: generate-filename
@@ -366,7 +366,7 @@ jobs:
         shell: bash
         run: |
           cd release
-          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" ./*
+          7z a -mx=9 -m0=lzma2 "../${{ steps.generate-filename.outputs.build_name }}" .
           echo "Release compressed as ${{ steps.generate-filename.outputs.build_name }}."
 
           FILE_SIZE_MB=$(stat -c %s "../${{ steps.generate-filename.outputs.build_name }}" | awk '{printf "%.2f MB", $1 / 1024 / 1024}')
