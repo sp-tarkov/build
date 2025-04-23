@@ -156,7 +156,7 @@ jobs:
 
       - name: Publish Server
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c Release -f net9.0 -r win-x64 -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false -p:SptBuildType=${{ needs.prepare.output.build_type }} -p:SptVersion=${{ needs.prepare.output.spt_version }} -p:SptBuildTime=${{ date +%Y%m%d }} -p:SptCommit=${{ server_commit }}
+        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c Release -f net9.0 -r win-x64 -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false -p:SptBuildType=${{ needs.prepare.output.build_type }} -p:SptVersion=${{ needs.prepare.output.spt_version }} -p:SptBuildTime=$( date +%Y%m%d ) -p:SptCommit=${{ server_commit }}
         working-directory: SPT/Build/server-csharp
 
       - name: Upload Server Artifact
@@ -315,7 +315,7 @@ jobs:
 
       - name: Merge Static Assets and Dynamic Files
         shell: bash
-        run: cp -rvf build/static-assets/* release/
+        run: cp -rvf build/static-assets-csharp/* release/
 
       - name: List Release Contents
         shell: bash
