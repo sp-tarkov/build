@@ -337,30 +337,11 @@ jobs:
           rm -rf release build
           mkdir -p release
 
-      - name: Download Server Artifact (Windows)
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: server-artifact-win-x64
           path: release/
-
-      - name: Download Server Artifact (Linux)
-        if: github.event.inputs.crossPlatformRelease == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: server-artifact-linux-x64
-          path: release/
-
-      - name: Download Modules Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: modules-artifact
-          path: release/
-
-      - name: Download Launcher Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: launcher-artifact
-          path: release/
+          merge-multiple: true
 
       - name: Clone Build Project
         uses: actions/checkout@v4
