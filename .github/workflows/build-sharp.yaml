@@ -156,7 +156,18 @@ jobs:
 
       - name: Publish Server
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj -c Release -f net9.0 -r win-x64 -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true --self-contained false -p:SptBuildType=${{ needs.prepare.outputs.build_type }} -p:SptVersion=${{ needs.prepare.outputs.spt_version }} -p:SptBuildTime=$( date +%Y%m%d ) -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} -p:IsPublish=true
+        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj
+        -c Release \
+        -f net9.0 \
+        -r win-x64 \
+        -p:IncludeNativeLibrariesForSelfExtract=true \
+        -p:PublishSingleFile=true \
+        --self-contained false \
+        -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+        -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+        -p:SptBuildTime=$( date +%Y%m%d ) \
+        -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+        -p:IsPublish=true
         working-directory: SPT/Build/server-csharp
 
       - name: Upload Server Artifact
