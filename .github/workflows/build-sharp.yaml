@@ -103,12 +103,12 @@ jobs:
           cd /workspace/SPT/Build/server-csharp-core
           git remote add origin https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git
           git config core.sparseCheckout true
-          echo "Libraries/SPTarkov.Server.Assets/Assets/configs/core.json" >> .git/info/sparse-checkout
+          echo "Libraries/SPTarkov.Server.Assets/SPT_Data/configs/core.json" >> .git/info/sparse-checkout
 
           git fetch --depth=1 origin "${{ steps.determine-context.outputs.target_tag }}"
           git checkout FETCH_HEAD
 
-          cd Libraries/SPTarkov.Server.Assets/Assets/configs
+          cd Libraries/SPTarkov.Server.Assets/SPT_Data/configs
           SPT_VERSION=$(jq -r '.sptVersion' core.json)
           FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
           CLIENT_VERSION=${FULL_VERSION##*.}
