@@ -7,6 +7,11 @@ on:
         description: "The tag to build on"
         required: true
         type: string
+      crossPlatformRelease:
+        description: 'Cross-platform release (Windows + Linux server)'
+        required: false
+        type: 'boolean'
+        default: 'true'
 
 concurrency:
   group: spt-release-build-sharp
@@ -154,29 +159,61 @@ jobs:
         run: echo "server_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         working-directory: SPT/Build/server-csharp
 
-      - name: Publish Server
+      - name: Publish Server (Windows)
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-        -c Release \
-        -f net9.0 \
-        -r win-x64 \
-        -p:IncludeNativeLibrariesForSelfExtract=true \
-        -p:PublishSingleFile=true \
-        --self-contained false \
-        -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
-        -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
-        -p:SptBuildTime=$( date +%Y%m%d ) \
-        -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
-        -p:IsPublish=true
+        run: |
+          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
+          -c Release \
+          -f net9.0 \
+          -r win-x64 \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -p:PublishSingleFile=true \
+          --self-contained false \
+          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+          -p:SptBuildTime=$( date +%Y%m%d ) \
+          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+          -p:IsPublish=true
         working-directory: SPT/Build/server-csharp
 
-      - name: Upload Server Artifact
+      - name: Publish Server (Linux)
+        if: github.event.inputs.crossPlatformRelease == 'true'
+        shell: bash
+        run: |
+          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
+          -c Release \
+          -f net9.0 \
+          -r linux-x64 \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -p:PublishSingleFile=true \
+          --self-contained false \
+          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+          -p:SptBuildTime=$( date +%Y%m%d ) \
+          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+          -p:IsPublish=true
+        working-directory: SPT/Build/server-csharp
+
+      - name: Upload Server Artifact (Windows)
         uses: actions/upload-artifact@v4
         with:
-          name: server-artifact
+          name: server-artifact-win-x64
           path: |
             SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/
             !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/**/*.pdb
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload Server Artifact (Linux)
+        if: github.event.inputs.crossPlatformRelease == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-artifact-linux-x64
+          path: |
+            SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/
+            !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/**/*.pdb
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -300,10 +337,17 @@ jobs:
           rm -rf release build
           mkdir -p release
 
-      - name: Download Server Artifact
+      - name: Download Server Artifact (Windows)
         uses: actions/download-artifact@v4
         with:
-          name: server-artifact
+          name: server-artifact-win-x64
+          path: release/
+
+      - name: Download Server Artifact (Linux)
+        if: github.event.inputs.crossPlatformRelease == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: server-artifact-linux-x64
           path: release/
 
       - name: Download Modules Artifact
