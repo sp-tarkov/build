@@ -156,7 +156,7 @@ jobs:
 
       - name: Publish Server
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj
+        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
         -c Release \
         -f net9.0 \
         -r win-x64 \
