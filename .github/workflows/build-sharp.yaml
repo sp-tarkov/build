@@ -154,29 +154,59 @@ jobs:
         run: echo "server_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         working-directory: SPT/Build/server-csharp
 
-      - name: Publish Server
+      - name: Publish Server - Windows
         shell: bash
-        run: dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-        -c Release \
-        -f net9.0 \
-        -r win-x64 \
-        -p:IncludeNativeLibrariesForSelfExtract=true \
-        -p:PublishSingleFile=true \
-        --self-contained false \
-        -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
-        -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
-        -p:SptBuildTime=$( date +%Y%m%d ) \
-        -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
-        -p:IsPublish=true
+        run: |
+          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
+          -c Release \
+          -f net9.0 \
+          -r win-x64 \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -p:PublishSingleFile=true \
+          --self-contained false \
+          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+          -p:SptBuildTime=$( date +%Y%m%d ) \
+          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+          -p:IsPublish=true
         working-directory: SPT/Build/server-csharp
 
-      - name: Upload Server Artifact
+      - name: Publish Server - Linux
+        shell: bash
+        run: |
+          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
+          -c Release \
+          -f net9.0 \
+          -r linux-x64 \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -p:PublishSingleFile=true \
+          --self-contained false \
+          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+          -p:SptBuildTime=$( date +%Y%m%d ) \
+          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+          -p:IsPublish=true
+        working-directory: SPT/Build/server-csharp
+
+      - name: Upload Server Artifact - Windows
         uses: actions/upload-artifact@v4
         with:
-          name: server-artifact
+          name: server-artifact-win-x64
           path: |
             SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/
             !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/**/*.pdb
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload Server Artifact - Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-artifact-linux-x64
+          path: |
+            SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/
+            !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/**/*.pdb
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -300,23 +330,11 @@ jobs:
           rm -rf release build
           mkdir -p release
 
-      - name: Download Server Artifact
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: server-artifact
           path: release/
-
-      - name: Download Modules Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: modules-artifact
-          path: release/
-
-      - name: Download Launcher Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: launcher-artifact
-          path: release/
+          merge-multiple: true
 
       - name: Clone Build Project
         uses: actions/checkout@v4
@@ -343,27 +361,23 @@ jobs:
           TARGET_TAG=${{ needs.prepare.outputs.target_tag }}
           DATE=$(date +%Y%m%d)
 
-          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            BASE_NAME="SPT-NIGHTLY-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
-          else
-            UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-            UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
+          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+          UPPER_TARGET_TAG=$(echo "$TARGET_TAG" | tr '[:lower:]' '[:upper:]')
 
-            if [ "$BUILD_TYPE" = "RELEASE" ]; then
-              BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
+          if [ "$BUILD_TYPE" = "RELEASE" ]; then
+            BASE_NAME="SPT-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}"
+          else
+            TAG_PART=""
+            if [[ "$UPPER_TARGET_TAG" == *-*-* ]]; then
+              SUFFIX="${UPPER_TARGET_TAG##*-}"
+              if [ "$SUFFIX" != "$UPPER_TARGET_TAG" ]; then
+                TAG_PART="-${SUFFIX}"
+              fi
+            fi
+            if [ -n "$TAG_PART" ]; then
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}${TAG_PART}"
             else
-              TAG_PART=""
-              if [[ "$UPPER_TARGET_TAG" == *-*-* ]]; then
-                SUFFIX="${UPPER_TARGET_TAG##*-}"
-                if [ "$SUFFIX" != "$UPPER_TARGET_TAG" ]; then
-                  TAG_PART="-${SUFFIX}"
-                fi
-              fi
-              if [ -n "$TAG_PART" ]; then
-                BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}${TAG_PART}"
-              else
-                BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
-              fi
+              BASE_NAME="SPT-${UPPER_BUILD_TYPE}-${SPT_VERSION}-${CLIENT_VERSION}-${SERVER_COMMIT}-${DATE}"
             fi
           fi
 
@@ -460,37 +474,30 @@ jobs:
           FILE_SIZE_MB: ${{ steps.compress-release.outputs.file_size_mb }}
           FILE_HASH: ${{ steps.compress-release.outputs.file_hash }}
           LINK_HTTPS: ${{ steps.upload-https-7z.outputs.link_https }}
-          IS_NIGHTLY: ${{ needs.prepare.outputs.is_nightly }}
         shell: bash
         run: |
           UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
-          FOOTER_MESSAGES=("You look great today!" "Powered by coffee" "Life's too short to remove USB safely" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot - Waffle" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature" "Please direct all support requests to Drakia" "Meaw" "If this doesnt work it's because of Alex" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "CWX is the reason we can’t have nice things" "CWX voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe is watching" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Sarix just gave this embed a 7/10" "Waffle has entered the chat, and now it’s weird" "Waffle is busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
+          FOOTER_MESSAGES=("MadByte asks: is this compatable on Linux?" "You look great today!" "Powered by coffee" "Life's too short to remove USB safely" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot - Waffle" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature" "Please direct all support requests to Drakia" "Meaw" "If this doesnt work it's because of Alex" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "CWX is the reason we can't have nice things" "CWX voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe is watching" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Sarix just gave this embed a 7/10" "Waffle has entered the chat, and now it's weird" "Waffle is busy stacking layers of chaos" "Waffle would like to speak to the manager of logic")
           FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
           TIMESTAMP=$(date --iso-8601=seconds)
           MODS=""
 
-          if [[ "${{ needs.prepare.outputs.is_nightly }}" == "true" ]]; then
-            EMBED_COLOR=16705372
-            EMBED_DESCRIPTION='A new nightly build is available. These are untested and considered unstable. Absolutely no support is provided. **If you ask for help you will be banned from the #dev-builds channel without explanation.** 7-Zip is *required* to extract the release. The download link is temporary.'
+          if [ "$BUILD_TYPE" == "BLEEDING_EDGE" ]; then
+            EMBED_COLOR=15548997
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
             MODS='disabled'
+          elif [ "$BUILD_TYPE" == "BLEEDING_EDGE_MODS" ]; then
+            EMBED_COLOR=15548997
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
+            MODS='enabled'
+          elif [ "$BUILD_TYPE" == "DEBUG" ]; then
+            EMBED_COLOR=2123412
+            EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release. The download link is temporary.'
+            MODS='enabled'
           else
-            if [ "$BUILD_TYPE" == "BLEEDING_EDGE" ]; then
-              EMBED_COLOR=15548997
-              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
-              MODS='disabled'
-            elif [ "$BUILD_TYPE" == "BLEEDING_EDGE_MODS" ]; then
-              EMBED_COLOR=15548997
-              EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
-              MODS='enabled'
-            elif [ "$BUILD_TYPE" == "DEBUG" ]; then
-              EMBED_COLOR=2123412
-              EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release. The download link is temporary.'
-              MODS='enabled'
-            else
-              EMBED_COLOR=5763719
-              EMBED_DESCRIPTION=$'A new *release* build has been published. Get to testing, nerds.'
-              MODS='enabled'
-            fi
+            EMBED_COLOR=5763719
+            EMBED_DESCRIPTION=$'A new *release* build has been published. Get to testing, nerds.'
+            MODS='enabled'
           fi
 
           fields_json='[
