@@ -26,6 +26,7 @@ jobs:
       build_type: ${{ steps.determine-build-type.outputs.build_type }}
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
+      build_config: ${{ steps.determine-build-type.outputs.build_config }}
 
     steps:
       - name: Determine Build Context
@@ -70,6 +71,15 @@ jobs:
 
           echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
           echo "Build type is $BUILD_TYPE"
+
+          # Set build configuration based on build type
+          if [ "$BUILD_TYPE" = "RELEASE" ]; then
+            BUILD_CONFIG="Release"
+          else
+            BUILD_CONFIG="Debug"
+          fi
+          echo "build_config=$BUILD_CONFIG" >> $GITHUB_OUTPUT
+          echo "Build config is $BUILD_CONFIG"
 
       - name: Check Existence
         id: check-existence
@@ -158,7 +168,7 @@ jobs:
         shell: bash
         run: |
           dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-          -c Release \
+          -c ${{ needs.prepare.outputs.build_config }} \
           -f net9.0 \
           -r win-x64 \
           -p:IncludeNativeLibrariesForSelfExtract=true \
@@ -175,7 +185,7 @@ jobs:
         shell: bash
         run: |
           dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-          -c Release \
+          -c ${{ needs.prepare.outputs.build_config }} \
           -f net9.0 \
           -r linux-x64 \
           -p:IncludeNativeLibrariesForSelfExtract=true \
@@ -193,8 +203,8 @@ jobs:
         with:
           name: server-artifact-win-x64
           path: |
-            SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/
-            !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/win-x64/publish/**/*.pdb
+            SPT/Build/server-csharp/SPTarkov.Server/bin/${{ needs.prepare.outputs.build_config }}/net9.0/win-x64/publish/
+            !SPT/Build/server-csharp/SPTarkov.Server/bin/${{ needs.prepare.outputs.build_config }}/net9.0/win-x64/publish/**/*.pdb
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -205,8 +215,8 @@ jobs:
         with:
           name: server-artifact-linux-x64
           path: |
-            SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/
-            !SPT/Build/server-csharp/SPTarkov.Server/bin/Release/net9.0/linux-x64/publish/**/*.pdb
+            SPT/Build/server-csharp/SPTarkov.Server/bin/${{ needs.prepare.outputs.build_config }}/net9.0/linux-x64/publish/
+            !SPT/Build/server-csharp/SPTarkov.Server/bin/${{ needs.prepare.outputs.build_config }}/net9.0/linux-x64/publish/**/*.pdb
           compression-level: 0
           retention-days: 1
           overwrite: true
@@ -335,6 +345,13 @@ jobs:
         with:
           path: release/
           merge-multiple: true
+
+      - name: Remove Unnecessary Files
+        shell: bash
+        run: |
+          find release -name "web.config" -type f -delete
+          find release -name "SPTarkov.Server.staticwebassets.endpoints.json" -type f -delete
+          find release -name "SPTarkov.Server.Linux.staticwebassets.endpoints.json" -type f -delete
 
       - name: Clone Build Project
         uses: actions/checkout@v4
