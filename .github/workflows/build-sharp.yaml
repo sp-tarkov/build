@@ -164,38 +164,25 @@ jobs:
         run: echo "server_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         working-directory: SPT/Build/server-csharp
 
-      - name: Publish Server - Windows
+      - name: Publish Server
         shell: bash
         run: |
-          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-          -c ${{ needs.prepare.outputs.build_config }} \
-          -f net9.0 \
-          -r win-x64 \
-          -p:IncludeNativeLibrariesForSelfExtract=true \
-          -p:PublishSingleFile=true \
-          --self-contained false \
-          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
-          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
-          -p:SptBuildTime=$( date +%Y%m%d ) \
-          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
-          -p:IsPublish=true
-        working-directory: SPT/Build/server-csharp
-
-      - name: Publish Server - Linux
-        shell: bash
-        run: |
-          dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
-          -c ${{ needs.prepare.outputs.build_config }} \
-          -f net9.0 \
-          -r linux-x64 \
-          -p:IncludeNativeLibrariesForSelfExtract=true \
-          -p:PublishSingleFile=true \
-          --self-contained false \
-          -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
-          -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
-          -p:SptBuildTime=$( date +%Y%m%d ) \
-          -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
-          -p:IsPublish=true
+          PLATFORMS=("win-x64" "linux-x64")
+          for PLATFORM in "${PLATFORMS[@]}"; do
+            echo "Publishing server for '$PLATFORM'..."
+            dotnet publish ./SPTarkov.Server/SPTarkov.Server.csproj \
+            -c ${{ needs.prepare.outputs.build_config }} \
+            -f net9.0 \
+            -r $PLATFORM \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:PublishSingleFile=true \
+            --self-contained false \
+            -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
+            -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
+            -p:SptBuildTime=$( date +%Y%m%d ) \
+            -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
+            -p:IsPublish=true
+          done
         working-directory: SPT/Build/server-csharp
 
       - name: Upload Server Artifact - Windows
@@ -352,6 +339,11 @@ jobs:
           find release -name "web.config" -type f -delete
           find release -name "SPTarkov.Server.staticwebassets.endpoints.json" -type f -delete
           find release -name "SPTarkov.Server.Linux.staticwebassets.endpoints.json" -type f -delete
+
+      - name: Update File Permissions
+        shell: bash
+        run: |
+          chmod +x release/SPTarkov.Server.Linux
 
       - name: Clone Build Project
         uses: actions/checkout@v4
