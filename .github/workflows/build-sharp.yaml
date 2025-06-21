@@ -337,13 +337,13 @@ jobs:
         shell: bash
         run: |
           find release -name "web.config" -type f -delete
-          find release -name "SPTarkov.Server.staticwebassets.endpoints.json" -type f -delete
-          find release -name "SPTarkov.Server.Linux.staticwebassets.endpoints.json" -type f -delete
+          find release -name "SPT.Server.staticwebassets.endpoints.json" -type f -delete
+          find release -name "SPT.Server.Linux.staticwebassets.endpoints.json" -type f -delete
 
       - name: Update File Permissions
         shell: bash
         run: |
-          chmod +x release/SPTarkov.Server.Linux
+          chmod +x release/SPT.Server.Linux
 
       - name: Clone Build Project
         uses: actions/checkout@v4
