@@ -151,7 +151,7 @@ jobs:
           TARGET="${{ needs.prepare.outputs.target_tag }}"
   
           echo "Cloning target: $TARGET"
-          git clone https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git --branch "$TARGET" "$serverPath"
+          git clone https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git --branch "$TARGET" --depth 1 "$serverPath"
   
           # Pull LFS files.
           cd "$serverPath"
