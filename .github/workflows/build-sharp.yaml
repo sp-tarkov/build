@@ -27,6 +27,7 @@ jobs:
       client_version: ${{ steps.versions.outputs.client_version }}
       spt_version: ${{ steps.versions.outputs.spt_version }}
       build_config: ${{ steps.determine-build-type.outputs.build_config }}
+      nuget_version: ${{ steps.nuget-version.outputs.nuget_version }}
 
     steps:
       - name: Determine Build Context
@@ -132,6 +133,39 @@ jobs:
           echo "Client version is $CLIENT_VERSION"
           echo "SPT version is $SPT_VERSION"
 
+      - name: Generate NuGet Package Version
+        id: nuget-version
+        shell: bash
+        run: |
+          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+          SPT_VERSION="${{ steps.versions.outputs.spt_version }}"
+          BUILD_TYPE="${{ steps.determine-build-type.outputs.build_type }}"
+
+          # For release builds, use simple version number without pre-release suffix
+          if [ "$BUILD_TYPE" = "RELEASE" ]; then
+            NUGET_VERSION="$SPT_VERSION"
+            echo "Release build detected - using simple version: $NUGET_VERSION"
+          else
+            # For non-release builds, use pre-release format with date
+            # Extract the date, look for 8-digit date pattern (YYYYMMDD) at the end of the tag
+            DATE_PART=$(echo "$TARGET_TAG" | grep -oE '[0-9]{8}$' || echo "")
+
+            # Check if we found a valid date pattern
+            if [[ -n "$DATE_PART" && "$DATE_PART" =~ ^[0-9]{8}$ ]]; then
+              NUGET_VERSION="${SPT_VERSION}-pre.${DATE_PART}"
+              echo "Pre-release build detected - extracted date from tag: $DATE_PART"
+            else
+              # Fallback to current date if no date pattern found in tag
+              CURRENT_DATE=$(date +%Y%m%d)
+              NUGET_VERSION="${SPT_VERSION}-pre.${CURRENT_DATE}"
+              echo "Pre-release build detected - no date in tag, using current date: $CURRENT_DATE"
+            fi
+            echo "Pre-release version: $NUGET_VERSION"
+          fi
+
+          echo "nuget_version=$NUGET_VERSION" >> $GITHUB_OUTPUT
+          echo "NuGet package version: $NUGET_VERSION"
+
   build-server:
     needs: prepare
     if: needs.prepare.outputs.proceed == 'true'
@@ -211,6 +245,37 @@ jobs:
           retention-days: 1
           overwrite: true
           if-no-files-found: error
+
+      - name: Create NuGet Packages
+        shell: bash
+        run: |
+          mkdir -p ./packages/
+          dotnet pack -o ./packages/ -c ${{ needs.prepare.outputs.build_config }} /p:Version=${{ needs.prepare.outputs.nuget_version }}
+          echo "NuGet packages created with version ${{ needs.prepare.outputs.nuget_version }}"
+        working-directory: SPT/Build/server-csharp
+
+      - name: Publish NuGet Packages
+        continue-on-error: true
+        shell: bash
+        run: |
+          PACKAGES=("SPTarkov.Common" "SPTarkov.DI" "SPTarkov.Reflection" "SPTarkov.Server" "SPTarkov.Server.Assets" "SPTarkov.Server.Core")
+          VERSION="${{ needs.prepare.outputs.nuget_version }}"
+
+          for PACKAGE in "${PACKAGES[@]}"; do
+            PACKAGE_FILE="./packages/${PACKAGE}.${VERSION}.nupkg"
+            if [ -f "$PACKAGE_FILE" ]; then
+              echo "Publishing $PACKAGE_FILE..."
+              if dotnet nuget push "$PACKAGE_FILE" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json; then
+                echo "Successfully published $PACKAGE"
+              else
+                echo "Failed to publish $PACKAGE"
+              fi
+            else
+              echo "Warning: Package file $PACKAGE_FILE not found, skipping."
+            fi
+          done
+          echo "NuGet package publishing completed."
+        working-directory: SPT/Build/server-csharp
 
   build-modules:
     needs: prepare
