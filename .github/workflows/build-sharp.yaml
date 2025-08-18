@@ -342,6 +342,7 @@ jobs:
           find release -name "web.config" -type f -delete
           find release -name "SPT.Server.staticwebassets.endpoints.json" -type f -delete
           find release -name "SPT.Server.Linux.staticwebassets.endpoints.json" -type f -delete
+          find release -maxdepth 1 -name "*.xml" -type f -delete
 
       - name: Update File Permissions
         shell: bash
