@@ -107,9 +107,9 @@ jobs:
       - name: Extract Versions
         id: versions
         shell: bash
+        env:
+          TARGET_TAG: ${{ steps.determine-context.outputs.target_tag }}
         run: |
-          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
-          
           rm -rf /workspace/SPT/Build/server-csharp-core
           git init /workspace/SPT/Build/server-csharp-core
           cd /workspace/SPT/Build/server-csharp-core
@@ -117,7 +117,7 @@ jobs:
           git config core.sparseCheckout true
           echo "Libraries/SPTarkov.Server.Assets/SPT_Data/configs/core.json" >> .git/info/sparse-checkout
 
-          git fetch --depth=1 origin "${{ steps.determine-context.outputs.target_tag }}"
+          git fetch --depth=1 origin "$TARGET_TAG"
           git checkout FETCH_HEAD
 
           cd Libraries/SPTarkov.Server.Assets/SPT_Data/configs
