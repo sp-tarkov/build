@@ -108,6 +108,8 @@ jobs:
         id: versions
         shell: bash
         run: |
+          TARGET_TAG="${{ steps.determine-context.outputs.target_tag }}"
+          
           rm -rf /workspace/SPT/Build/server-csharp-core
           git init /workspace/SPT/Build/server-csharp-core
           cd /workspace/SPT/Build/server-csharp-core
@@ -119,9 +121,10 @@ jobs:
           git checkout FETCH_HEAD
 
           cd Libraries/SPTarkov.Server.Assets/SPT_Data/configs
-          SPT_VERSION=$(jq -r '.sptVersion' core.json)
           FULL_VERSION=$(jq -r '.compatibleTarkovVersion' core.json)
+          
           CLIENT_VERSION=${FULL_VERSION##*.}
+          SPT_VERSION="${TARGET_TAG%%-*}"
 
           echo "client_version=$CLIENT_VERSION" >> $GITHUB_OUTPUT
           echo "spt_version=$SPT_VERSION" >> $GITHUB_OUTPUT
