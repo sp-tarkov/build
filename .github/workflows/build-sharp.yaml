@@ -74,7 +74,7 @@ jobs:
           echo "Build type is $BUILD_TYPE"
 
           # Set build configuration based on build type
-          if [ "$BUILD_TYPE" = "RELEASE" ]; then
+          if [ "$BUILD_TYPE" = "RELEASE" ] || [ "$BUILD_TYPE" = "BLEEDINGEDGEMODS" ]; then
             BUILD_CONFIG="Release"
           else
             BUILD_CONFIG="Debug"
