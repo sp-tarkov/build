@@ -1,5 +1,5 @@
-# Use the .NET 9.0 SDK base image
-FROM mcr.microsoft.com/dotnet/sdk:9.0
+# Use the .NET 10.0 RC1 SDK base image
+FROM mcr.microsoft.com/dotnet/sdk:10.0.100-rc.1
 
 # Install necessary tools and dependencies
 #  - git (duh)

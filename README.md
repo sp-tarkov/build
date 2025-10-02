@@ -53,6 +53,6 @@ Prior to the assembly and distribution of Docker images, it is crucial to increm
 
 ```
 # Command to build and push the spt-build-dotnet Docker image to Docker Hub
-docker build -t refringe/spt-build-dotnet:2.0.2 -t refringe/spt-build-dotnet:latest -f Dockerfile.dotnet . --platform linux/amd64
+docker build -t refringe/spt-build-dotnet:2.1.1 -t refringe/spt-build-dotnet:latest -f Dockerfile.dotnet . --platform linux/amd64
 docker push refringe/spt-build-dotnet --all-tags
 ```
