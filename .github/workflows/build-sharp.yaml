@@ -215,7 +215,7 @@ jobs:
             -f net9.0 \
             -r $PLATFORM \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:PublishSingleFile=true \
+            -p:PublishSingleFile=false \
             --self-contained false \
             -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
             -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
