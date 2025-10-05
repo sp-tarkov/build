@@ -401,9 +401,7 @@ jobs:
       - name: Download SPT Folder Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: |
-            server-artifact-*
-            launcher-artifact
+          name: server-artifact-win-x64,server-artifact-linux-x64,launcher-artifact
           path: release/SPT
           merge-multiple: true
 
