@@ -425,7 +425,7 @@ jobs:
       - name: Update File Permissions
         shell: bash
         run: |
-          chmod +x release/SPT.Server.Linux
+          chmod +x release/SPT/SPT.Server.Linux
 
       - name: Clone Build Project
         uses: actions/checkout@v4
