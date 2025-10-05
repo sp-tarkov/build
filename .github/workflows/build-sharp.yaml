@@ -398,14 +398,21 @@ jobs:
           rm -rf release build
           mkdir -p release/SPT
 
-      - name: Download SPT Folder Artifacts
+      - name: Download Server Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: server-artifact-win-x64,server-artifact-linux-x64,launcher-artifact
+          pattern: server-artifact*
           path: release/SPT
           merge-multiple: true
 
-      - name: Download Root Folder Artifacts
+      - name: Download Launcher Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: launcher-artifact
+          path: release/SPT
+          merge-multiple: true
+
+      - name: Download Module Artifacts
         uses: actions/download-artifact@v4
         with:
           name: modules-artifact
