@@ -215,8 +215,7 @@ jobs:
             -f net9.0 \
             -r $PLATFORM \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:PublishSingleFile=true \
-            -p:PublishAot=false \
+            -p:PublishSingleFile=false \
             --self-contained false \
             -p:SptBuildType=${{ needs.prepare.outputs.build_type }} \
             -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
@@ -397,11 +396,19 @@ jobs:
         shell: bash
         run: |
           rm -rf release build
-          mkdir -p release
+          mkdir -p release/SPT
 
-      - name: Download Artifacts
+      - name: Download SPT Folder Artifacts
         uses: actions/download-artifact@v4
         with:
+          name: server-artifact-win-x64,server-artifact-linux-x64,launcher-artifact
+          path: release/SPT
+          merge-multiple: true
+
+      - name: Download Root Folder Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: modules-artifact
           path: release/
           merge-multiple: true
 
