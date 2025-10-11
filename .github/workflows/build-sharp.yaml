@@ -497,7 +497,7 @@ jobs:
           echo "file_hash=$FILE_HASH" >> $GITHUB_OUTPUT
 
       - name: R2 Upload
-        if: needs.prepare.outputs.build_type == 'Release-LUL'
+        if: needs.prepare.outputs.build_type == 'Release'
         env:
           SPT_VERSION: ${{ needs.prepare.outputs.spt_version }}
           CLIENT_VERSION: ${{ needs.prepare.outputs.client_version }}
