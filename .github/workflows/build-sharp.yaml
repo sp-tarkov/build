@@ -154,13 +154,13 @@ jobs:
             if [[ -n "$DATE_PART" && "$DATE_PART" =~ ^[0-9]{8}$ ]]; then
               # Add current hour and minutes to the extracted date
               CURRENT_TIME=$(date +%H%M)
-              NUGET_VERSION="${SPT_VERSION}-pre.${DATE_PART}.${CURRENT_TIME}"
+              NUGET_VERSION="${SPT_VERSION}-pre.${DATE_PART}${CURRENT_TIME}"
               echo "Pre-release build detected - extracted date from tag with time: ${DATE_PART}.${CURRENT_TIME}"
             else
               # Fallback to current date and time if no date pattern found in tag
               CURRENT_DATE=$(date +%Y%m%d)
               CURRENT_TIME=$(date +%H%M)
-              NUGET_VERSION="${SPT_VERSION}-pre.${CURRENT_DATE}.${CURRENT_TIME}"
+              NUGET_VERSION="${SPT_VERSION}-pre.${CURRENT_DATE}${CURRENT_TIME}"
               echo "Pre-release build detected - no date in tag, using current date and time: ${CURRENT_DATE}.${CURRENT_TIME}"
             fi
             echo "Pre-release version: $NUGET_VERSION"
