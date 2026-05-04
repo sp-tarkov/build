@@ -30,6 +30,22 @@
             Array of paths where Mono searches DLLs from before assembly resolvers are invoked.
             </summary>
         </member>
+        <member name="T:BepInEx.Preloader.PreloaderConsoleListener">
+            <summary>
+            Log listener that listens to logs during preloading time and buffers messages for output in Unity logs later.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Preloader.PreloaderConsoleListener.LogEvents">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:BepInEx.Preloader.PreloaderConsoleListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
+            <inheritdoc />
+        </member>
+        <member name="M:BepInEx.Preloader.PreloaderConsoleListener.Dispose">
+            <inheritdoc />
+        </member>
         <member name="T:BepInEx.Preloader.Patching.AssemblyPatcherDelegate">
             <summary>
                 Delegate used in patching assemblies.
@@ -118,11 +134,6 @@
             Recreation of MonoMod's PlatformHelper.DeterminePlatform method, but with libc calls instead of creating processes.
             </summary>
         </member>
-        <member name="T:BepInEx.Preloader.RuntimeFixes.TraceFix">
-            <summary>
-            This exists because the Mono implementation of <see cref="T:System.Diagnostics.Trace"/> is/was broken, and would call Write directly instead of calling TraceEvent.
-            </summary>
-        </member>
         <member name="T:BepInEx.Preloader.Preloader">
             <summary>
                 The main entrypoint of BepInEx, and initializes all patchers and the chainloader.
@@ -144,21 +155,10 @@
                 Allocates a console window for use by BepInEx safely.
             </summary>
         </member>
-        <member name="T:BepInEx.Preloader.PreloaderConsoleListener">
+        <member name="T:BepInEx.Preloader.RuntimeFixes.TraceFix">
             <summary>
-            Log listener that listens to logs during preloading time and buffers messages for output in Unity logs later.
+            This exists because the Mono implementation of <see cref="T:System.Diagnostics.Trace"/> is/was broken, and would call Write directly instead of calling TraceEvent.
             </summary>
-        </member>
-        <member name="P:BepInEx.Preloader.PreloaderConsoleListener.LogEvents">
-            <summary>
-            
-            </summary>
-        </member>
-        <member name="M:BepInEx.Preloader.PreloaderConsoleListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
-            <inheritdoc />
-        </member>
-        <member name="M:BepInEx.Preloader.PreloaderConsoleListener.Dispose">
-            <inheritdoc />
         </member>
         <member name="M:Doorstop.Entrypoint.Start">
             <summary>

@@ -4,77 +4,135 @@
         <name>BepInEx</name>
     </assembly>
     <members>
-        <member name="T:BepInEx.UnityInput">
+        <member name="T:BepInEx.Bootstrap.Chainloader">
             <summary>
-                Abstraction layer over Unity's input systems for use in universal plugins that need to use hotkeys.
-                It can use either Input or Unity.InputSystem, depending on what's available. Input is preferred.
-                WARNING: Use only inside of Unity's main thread!
+            The manager and loader for all plugins, and the entry point for BepInEx plugin system.
             </summary>
         </member>
-        <member name="P:BepInEx.UnityInput.Current">
+        <member name="P:BepInEx.Bootstrap.Chainloader.PluginInfos">
             <summary>
-                Best currently supported input system.
+            The loaded and initialized list of plugins.
             </summary>
         </member>
-        <member name="P:BepInEx.UnityInput.LegacyInputSystemAvailable">
+        <member name="P:BepInEx.Bootstrap.Chainloader.Plugins">
             <summary>
-                True if the Input class is not disabled.
+            List of all <see cref="T:BepInEx.BepInPlugin"/> loaded via the chainloader.
             </summary>
         </member>
-        <member name="T:BepInEx.IInputSystem">
+        <member name="P:BepInEx.Bootstrap.Chainloader.DependencyErrors">
             <summary>
-                Generic input system interface. Just barely good enough for hotkeys.
+            Collection of error chainloader messages that occured during plugin loading.
+            Contains information about what certain plugins were not loaded.
             </summary>
         </member>
-        <member name="P:BepInEx.IInputSystem.mousePosition">
-            <inheritdoc cref="P:UnityEngine.Input.mousePosition" />
-        </member>
-        <member name="P:BepInEx.IInputSystem.mouseScrollDelta">
-            <inheritdoc cref="P:UnityEngine.Input.mouseScrollDelta" />
-        </member>
-        <member name="P:BepInEx.IInputSystem.mousePresent">
-            <inheritdoc cref="P:UnityEngine.Input.mousePresent" />
-        </member>
-        <member name="P:BepInEx.IInputSystem.anyKey">
-            <inheritdoc cref="P:UnityEngine.Input.anyKey" />
-        </member>
-        <member name="P:BepInEx.IInputSystem.anyKeyDown">
-            <inheritdoc cref="P:UnityEngine.Input.anyKeyDown" />
-        </member>
-        <member name="P:BepInEx.IInputSystem.SupportedKeyCodes">
+        <member name="P:BepInEx.Bootstrap.Chainloader.ManagerObject">
             <summary>
-                All KeyCodes supported by the current input system.
+            The GameObject that all plugins are attached to as components.
             </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKey(System.String)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKey(System.String)" />
+        <member name="M:BepInEx.Bootstrap.Chainloader.Initialize(System.String,System.Boolean,System.Collections.Generic.ICollection{BepInEx.Logging.LogEventArgs})">
+            <summary>
+            Initializes BepInEx to be able to start the chainloader.
+            </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKey(UnityEngine.KeyCode)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKey(UnityEngine.KeyCode)" />
+        <member name="M:BepInEx.Bootstrap.Chainloader.ToPluginInfo(Mono.Cecil.TypeDefinition)">
+            <summary>
+            Analyzes the given type definition and attempts to convert it to a valid <see cref="T:BepInEx.PluginInfo"/>
+            </summary>
+            <param name="type">Type definition to analyze.</param>
+            <returns>If the type represent a valid plugin, returns a <see cref="T:BepInEx.PluginInfo"/> instance. Otherwise, return null.</returns>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKeyDown(System.String)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKeyDown(System.String)" />
+        <member name="M:BepInEx.Bootstrap.Chainloader.Start">
+            <summary>
+            The entrypoint for the BepInEx plugin system.
+            </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKeyDown(UnityEngine.KeyCode)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode)" />
+        <member name="T:BepInEx.Bootstrap.ICacheable">
+            <summary>
+            A cacheable metadata item. Can be used with <see cref="M:BepInEx.Bootstrap.TypeLoader.LoadAssemblyCache``1(System.String)"/> and <see cref="M:BepInEx.Bootstrap.TypeLoader.SaveAssemblyCache``1(System.String,System.Collections.Generic.Dictionary{System.String,System.Collections.Generic.List{``0}})"/> to cache plugin metadata.
+            </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKeyUp(System.String)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKeyUp(System.String)" />
+        <member name="M:BepInEx.Bootstrap.ICacheable.Save(System.IO.BinaryWriter)">
+            <summary>
+            Serialize the object into a binary format.
+            </summary>
+            <param name="bw"></param>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetKeyUp(UnityEngine.KeyCode)">
-            <inheritdoc cref="M:UnityEngine.Input.GetKeyUp(UnityEngine.KeyCode)" />
+        <member name="M:BepInEx.Bootstrap.ICacheable.Load(System.IO.BinaryReader)">
+            <summary>
+            Loads the object from binary format.
+            </summary>
+            <param name="br"></param>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetMouseButton(System.Int32)">
-            <inheritdoc cref="M:UnityEngine.Input.GetMouseButton(System.Int32)" />
+        <member name="T:BepInEx.Bootstrap.CachedAssembly`1">
+            <summary>
+            A cached assembly.
+            </summary>
+            <typeparam name="T"></typeparam>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetMouseButtonDown(System.Int32)">
-            <inheritdoc cref="M:UnityEngine.Input.GetMouseButtonDown(System.Int32)" />
+        <member name="P:BepInEx.Bootstrap.CachedAssembly`1.CacheItems">
+            <summary>
+            List of cached items inside the assembly.
+            </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.GetMouseButtonUp(System.Int32)">
-            <inheritdoc cref="M:UnityEngine.Input.GetMouseButtonUp(System.Int32)" />
+        <member name="P:BepInEx.Bootstrap.CachedAssembly`1.Timestamp">
+            <summary>
+            Timestamp of the assembly. Used to check the age of the cache.
+            </summary>
         </member>
-        <member name="M:BepInEx.IInputSystem.ResetInputAxes">
-            <inheritdoc cref="M:UnityEngine.Input.ResetInputAxes" />
+        <member name="T:BepInEx.Bootstrap.TypeLoader">
+            <summary>
+                Provides methods for loading specified types from an assembly.
+            </summary>
+        </member>
+        <member name="F:BepInEx.Bootstrap.TypeLoader.Resolver">
+            <summary>
+            Default assembly resolved used by the <see cref="T:BepInEx.Bootstrap.TypeLoader"/>
+            </summary>
+        </member>
+        <member name="F:BepInEx.Bootstrap.TypeLoader.ReaderParameters">
+            <summary>
+            Default reader parameters used by <see cref="T:BepInEx.Bootstrap.TypeLoader"/>
+            </summary>
+        </member>
+        <member name="E:BepInEx.Bootstrap.TypeLoader.AssemblyResolve">
+            <summary>
+            Event fired when <see cref="T:BepInEx.Bootstrap.TypeLoader"/> fails to resolve a type during type loading.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Bootstrap.TypeLoader.FindPluginTypes``1(System.String,System.Func{Mono.Cecil.TypeDefinition,``0},System.Func{Mono.Cecil.AssemblyDefinition,System.Boolean},System.String)">
+            <summary>
+                Looks up assemblies in the given directory and locates all types that can be loaded and collects their metadata.
+            </summary>
+            <typeparam name="T">The specific base type to search for.</typeparam>
+            <param name="directory">The directory to search for assemblies.</param>
+            <param name="typeSelector">A function to check if a type should be selected and to build the type metadata.</param>
+            <param name="assemblyFilter">A filter function to quickly determine if the assembly can be loaded.</param>
+            <param name="cacheName">The name of the cache to get cached types from.</param>
+            <returns>A dictionary of all assemblies in the directory and the list of type metadatas of types that match the selector.</returns>
+        </member>
+        <member name="M:BepInEx.Bootstrap.TypeLoader.LoadAssemblyCache``1(System.String)">
+            <summary>
+                Loads an index of type metadatas from a cache.
+            </summary>
+            <param name="cacheName">Name of the cache</param>
+            <typeparam name="T">Cacheable item</typeparam>
+            <returns>Cached type metadatas indexed by the path of the assembly that defines the type. If no cache is defined, return null.</returns>
+        </member>
+        <member name="M:BepInEx.Bootstrap.TypeLoader.SaveAssemblyCache``1(System.String,System.Collections.Generic.Dictionary{System.String,System.Collections.Generic.List{``0}})">
+            <summary>
+                Saves indexed type metadata into a cache.
+            </summary>
+            <param name="cacheName">Name of the cache</param>
+            <param name="entries">List of plugin metadatas indexed by the path to the assembly that contains the types</param>
+            <typeparam name="T">Cacheable item</typeparam>
+        </member>
+        <member name="M:BepInEx.Bootstrap.TypeLoader.TypeLoadExceptionToString(System.Reflection.ReflectionTypeLoadException)">
+            <summary>
+                Converts TypeLoadException to a readable string.
+            </summary>
+            <param name="ex">TypeLoadException</param>
+            <returns>Readable representation of the exception</returns>
         </member>
         <member name="T:BepInEx.Configuration.AcceptableValueBase">
             <summary>
@@ -156,91 +214,6 @@
         </member>
         <member name="M:BepInEx.Configuration.AcceptableValueRange`1.ToDescriptionString">
             <inheritdoc />
-        </member>
-        <member name="T:BepInEx.Configuration.ConfigEntry`1">
-            <summary>
-            Provides access to a single setting inside of a <see cref="T:BepInEx.Configuration.ConfigFile"/>.
-            </summary>
-            <typeparam name="T">Type of the setting.</typeparam>
-        </member>
-        <member name="E:BepInEx.Configuration.ConfigEntry`1.SettingChanged">
-            <summary>
-            Fired when the setting is changed. Does not detect changes made outside from this object.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntry`1.Value">
-            <summary>
-            Value of this setting.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntry`1.BoxedValue">
-            <inheritdoc />
-        </member>
-        <member name="T:BepInEx.Configuration.ConfigEntryBase">
-            <summary>
-            Container for a single setting of a <see cref="T:BepInEx.Configuration.ConfigFile"/>. 
-            Each config entry is linked to one config file.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.#ctor(BepInEx.Configuration.ConfigFile,BepInEx.Configuration.ConfigDefinition,System.Type,System.Object,BepInEx.Configuration.ConfigDescription)">
-            <summary>
-            Types of defaultValue and definition.AcceptableValues have to be the same as settingType.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.ConfigFile">
-            <summary>
-            Config file this entry is a part of.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.Definition">
-            <summary>
-            Category and name of this setting. Used as a unique key for identification within a <see cref="T:BepInEx.Configuration.ConfigFile"/>.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.Description">
-            <summary>
-            Description / metadata of this setting.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.SettingType">
-            <summary>
-            Type of the <see cref="P:BepInEx.Configuration.ConfigEntryBase.BoxedValue"/> that this setting holds.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.DefaultValue">
-            <summary>
-            Default value of this setting (set only if the setting was not changed before).
-            </summary>
-        </member>
-        <member name="P:BepInEx.Configuration.ConfigEntryBase.BoxedValue">
-            <summary>
-            Get or set the value of the setting.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.GetSerializedValue">
-            <summary>
-            Get the serialized representation of the value.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.SetSerializedValue(System.String)">
-            <summary>
-            Set the value by using its serialized form.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.ClampValue``1(``0)">
-            <summary>
-            If necessary, clamp the value to acceptable value range. T has to be equal to settingType.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.OnSettingChanged(System.Object)">
-            <summary>
-            Trigger setting changed event.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Configuration.ConfigEntryBase.WriteDescription(System.IO.StreamWriter)">
-            <summary>
-            Write a description of this setting using all available metadata.
-            </summary>
         </member>
         <member name="T:BepInEx.Configuration.ConfigDefinition">
             <summary>
@@ -327,6 +300,91 @@
         <member name="P:BepInEx.Configuration.ConfigDescription.Empty">
             <summary>
             An empty description.
+            </summary>
+        </member>
+        <member name="T:BepInEx.Configuration.ConfigEntry`1">
+            <summary>
+            Provides access to a single setting inside of a <see cref="T:BepInEx.Configuration.ConfigFile"/>.
+            </summary>
+            <typeparam name="T">Type of the setting.</typeparam>
+        </member>
+        <member name="E:BepInEx.Configuration.ConfigEntry`1.SettingChanged">
+            <summary>
+            Fired when the setting is changed. Does not detect changes made outside from this object.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntry`1.Value">
+            <summary>
+            Value of this setting.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntry`1.BoxedValue">
+            <inheritdoc />
+        </member>
+        <member name="T:BepInEx.Configuration.ConfigEntryBase">
+            <summary>
+            Container for a single setting of a <see cref="T:BepInEx.Configuration.ConfigFile"/>. 
+            Each config entry is linked to one config file.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.#ctor(BepInEx.Configuration.ConfigFile,BepInEx.Configuration.ConfigDefinition,System.Type,System.Object,BepInEx.Configuration.ConfigDescription)">
+            <summary>
+            Types of defaultValue and definition.AcceptableValues have to be the same as settingType.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.ConfigFile">
+            <summary>
+            Config file this entry is a part of.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.Definition">
+            <summary>
+            Category and name of this setting. Used as a unique key for identification within a <see cref="T:BepInEx.Configuration.ConfigFile"/>.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.Description">
+            <summary>
+            Description / metadata of this setting.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.SettingType">
+            <summary>
+            Type of the <see cref="P:BepInEx.Configuration.ConfigEntryBase.BoxedValue"/> that this setting holds.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.DefaultValue">
+            <summary>
+            Default value of this setting (set only if the setting was not changed before).
+            </summary>
+        </member>
+        <member name="P:BepInEx.Configuration.ConfigEntryBase.BoxedValue">
+            <summary>
+            Get or set the value of the setting.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.GetSerializedValue">
+            <summary>
+            Get the serialized representation of the value.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.SetSerializedValue(System.String)">
+            <summary>
+            Set the value by using its serialized form.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.ClampValue``1(``0)">
+            <summary>
+            If necessary, clamp the value to acceptable value range. T has to be equal to settingType.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.OnSettingChanged(System.Object)">
+            <summary>
+            Trigger setting changed event.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Configuration.ConfigEntryBase.WriteDescription(System.IO.StreamWriter)">
+            <summary>
+            Write a description of this setting using all available metadata.
             </summary>
         </member>
         <member name="T:BepInEx.Configuration.ConfigFile">
@@ -753,46 +811,6 @@
             The stream that writes to an external console. Null if no such console exists
             </summary>
         </member>
-        <member name="T:BepInEx.PluginInfo">
-            <summary>
-            Data class that represents information about a loadable BepInEx plugin.
-            Contains all metadata and additional info required for plugin loading by <see cref="T:BepInEx.Bootstrap.Chainloader"/>.
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Metadata">
-            <summary>
-            General metadata about a plugin.
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Processes">
-            <summary>
-            Collection of <see cref="T:BepInEx.BepInProcess"/> attributes that describe what processes the plugin can run on.
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Dependencies">
-            <summary>
-            Collection of <see cref="T:BepInEx.BepInDependency"/> attributes that describe what plugins this plugin depends on.
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Incompatibilities">
-            <summary>
-            Collection of <see cref="T:BepInEx.BepInIncompatibility"/> attributes that describe what plugins this plugin
-            is incompatible with.
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Location">
-            <summary>
-            File path to the plugin DLL
-            </summary>
-        </member>
-        <member name="P:BepInEx.PluginInfo.Instance">
-            <summary>
-            Instance of the plugin that represents this info. NULL if no plugin is instantiated from info (yet)
-            </summary>
-        </member>
-        <member name="M:BepInEx.PluginInfo.ToString">
-            <inheritdoc />
-        </member>
         <member name="T:BepInEx.BepInPlugin">
             <summary>
             This attribute denotes that a class is a plugin, and specifies the required metadata.
@@ -948,136 +966,6 @@
             It is mainly intended to signify that the current build is not a release build and is special, like for instance a bleeding edge build.
             </summary>
         </member>
-        <member name="T:BepInEx.Bootstrap.Chainloader">
-            <summary>
-            The manager and loader for all plugins, and the entry point for BepInEx plugin system.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Bootstrap.Chainloader.PluginInfos">
-            <summary>
-            The loaded and initialized list of plugins.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Bootstrap.Chainloader.Plugins">
-            <summary>
-            List of all <see cref="T:BepInEx.BepInPlugin"/> loaded via the chainloader.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Bootstrap.Chainloader.DependencyErrors">
-            <summary>
-            Collection of error chainloader messages that occured during plugin loading.
-            Contains information about what certain plugins were not loaded.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Bootstrap.Chainloader.ManagerObject">
-            <summary>
-            The GameObject that all plugins are attached to as components.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Bootstrap.Chainloader.Initialize(System.String,System.Boolean,System.Collections.Generic.ICollection{BepInEx.Logging.LogEventArgs})">
-            <summary>
-            Initializes BepInEx to be able to start the chainloader.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Bootstrap.Chainloader.ToPluginInfo(Mono.Cecil.TypeDefinition)">
-            <summary>
-            Analyzes the given type definition and attempts to convert it to a valid <see cref="T:BepInEx.PluginInfo"/>
-            </summary>
-            <param name="type">Type definition to analyze.</param>
-            <returns>If the type represent a valid plugin, returns a <see cref="T:BepInEx.PluginInfo"/> instance. Otherwise, return null.</returns>
-        </member>
-        <member name="M:BepInEx.Bootstrap.Chainloader.Start">
-            <summary>
-            The entrypoint for the BepInEx plugin system.
-            </summary>
-        </member>
-        <member name="T:BepInEx.Bootstrap.ICacheable">
-            <summary>
-            A cacheable metadata item. Can be used with <see cref="M:BepInEx.Bootstrap.TypeLoader.LoadAssemblyCache``1(System.String)"/> and <see cref="M:BepInEx.Bootstrap.TypeLoader.SaveAssemblyCache``1(System.String,System.Collections.Generic.Dictionary{System.String,System.Collections.Generic.List{``0}})"/> to cache plugin metadata.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Bootstrap.ICacheable.Save(System.IO.BinaryWriter)">
-            <summary>
-            Serialize the object into a binary format.
-            </summary>
-            <param name="bw"></param>
-        </member>
-        <member name="M:BepInEx.Bootstrap.ICacheable.Load(System.IO.BinaryReader)">
-            <summary>
-            Loads the object from binary format.
-            </summary>
-            <param name="br"></param>
-        </member>
-        <member name="T:BepInEx.Bootstrap.CachedAssembly`1">
-            <summary>
-            A cached assembly.
-            </summary>
-            <typeparam name="T"></typeparam>
-        </member>
-        <member name="P:BepInEx.Bootstrap.CachedAssembly`1.CacheItems">
-            <summary>
-            List of cached items inside the assembly.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Bootstrap.CachedAssembly`1.Timestamp">
-            <summary>
-            Timestamp of the assembly. Used to check the age of the cache.
-            </summary>
-        </member>
-        <member name="T:BepInEx.Bootstrap.TypeLoader">
-            <summary>
-                Provides methods for loading specified types from an assembly.
-            </summary>
-        </member>
-        <member name="F:BepInEx.Bootstrap.TypeLoader.Resolver">
-            <summary>
-            Default assembly resolved used by the <see cref="T:BepInEx.Bootstrap.TypeLoader"/>
-            </summary>
-        </member>
-        <member name="F:BepInEx.Bootstrap.TypeLoader.ReaderParameters">
-            <summary>
-            Default reader parameters used by <see cref="T:BepInEx.Bootstrap.TypeLoader"/>
-            </summary>
-        </member>
-        <member name="E:BepInEx.Bootstrap.TypeLoader.AssemblyResolve">
-            <summary>
-            Event fired when <see cref="T:BepInEx.Bootstrap.TypeLoader"/> fails to resolve a type during type loading.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Bootstrap.TypeLoader.FindPluginTypes``1(System.String,System.Func{Mono.Cecil.TypeDefinition,``0},System.Func{Mono.Cecil.AssemblyDefinition,System.Boolean},System.String)">
-            <summary>
-                Looks up assemblies in the given directory and locates all types that can be loaded and collects their metadata.
-            </summary>
-            <typeparam name="T">The specific base type to search for.</typeparam>
-            <param name="directory">The directory to search for assemblies.</param>
-            <param name="typeSelector">A function to check if a type should be selected and to build the type metadata.</param>
-            <param name="assemblyFilter">A filter function to quickly determine if the assembly can be loaded.</param>
-            <param name="cacheName">The name of the cache to get cached types from.</param>
-            <returns>A dictionary of all assemblies in the directory and the list of type metadatas of types that match the selector.</returns>
-        </member>
-        <member name="M:BepInEx.Bootstrap.TypeLoader.LoadAssemblyCache``1(System.String)">
-            <summary>
-                Loads an index of type metadatas from a cache.
-            </summary>
-            <param name="cacheName">Name of the cache</param>
-            <typeparam name="T">Cacheable item</typeparam>
-            <returns>Cached type metadatas indexed by the path of the assembly that defines the type. If no cache is defined, return null.</returns>
-        </member>
-        <member name="M:BepInEx.Bootstrap.TypeLoader.SaveAssemblyCache``1(System.String,System.Collections.Generic.Dictionary{System.String,System.Collections.Generic.List{``0}})">
-            <summary>
-                Saves indexed type metadata into a cache.
-            </summary>
-            <param name="cacheName">Name of the cache</param>
-            <param name="entries">List of plugin metadatas indexed by the path to the assembly that contains the types</param>
-            <typeparam name="T">Cacheable item</typeparam>
-        </member>
-        <member name="M:BepInEx.Bootstrap.TypeLoader.TypeLoadExceptionToString(System.Reflection.ReflectionTypeLoadException)">
-            <summary>
-                Converts TypeLoadException to a readable string.
-            </summary>
-            <param name="ex">TypeLoadException</param>
-            <returns>Readable representation of the exception</returns>
-        </member>
         <member name="T:BepInEx.BaseUnityPlugin">
             <summary>
             The base plugin type that is used by the BepInEx plugin loader.
@@ -1104,6 +992,57 @@
             Create a new instance of a plugin and all of its tied in objects.
             </summary>
             <exception cref="T:System.InvalidOperationException">BepInPlugin attribute is missing.</exception>
+        </member>
+        <member name="T:BepInEx.PluginInfo">
+            <summary>
+            Data class that represents information about a loadable BepInEx plugin.
+            Contains all metadata and additional info required for plugin loading by <see cref="T:BepInEx.Bootstrap.Chainloader"/>.
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Metadata">
+            <summary>
+            General metadata about a plugin.
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Processes">
+            <summary>
+            Collection of <see cref="T:BepInEx.BepInProcess"/> attributes that describe what processes the plugin can run on.
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Dependencies">
+            <summary>
+            Collection of <see cref="T:BepInEx.BepInDependency"/> attributes that describe what plugins this plugin depends on.
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Incompatibilities">
+            <summary>
+            Collection of <see cref="T:BepInEx.BepInIncompatibility"/> attributes that describe what plugins this plugin
+            is incompatible with.
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Location">
+            <summary>
+            File path to the plugin DLL
+            </summary>
+        </member>
+        <member name="P:BepInEx.PluginInfo.Instance">
+            <summary>
+            Instance of the plugin that represents this info. NULL if no plugin is instantiated from info (yet)
+            </summary>
+        </member>
+        <member name="M:BepInEx.PluginInfo.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:BepInEx.Logging.ConsoleLogListener">
+            <summary>
+            Logs entries using Unity specific outputs.
+            </summary>
+        </member>
+        <member name="M:BepInEx.Logging.ConsoleLogListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
+            <inheritdoc />
+        </member>
+        <member name="M:BepInEx.Logging.ConsoleLogListener.Dispose">
+            <inheritdoc />
         </member>
         <member name="T:BepInEx.Logging.DiskLogListener">
             <summary>
@@ -1148,6 +1087,33 @@
         <member name="M:BepInEx.Logging.DiskLogListener.Finalize">
             <summary>
             Disposes of Disk logger
+            </summary>
+        </member>
+        <member name="T:BepInEx.Logging.ILogListener">
+            <summary>
+            A generic log listener that receives log events and can route them to some output (e.g. file, console, socket).
+            </summary>
+        </member>
+        <member name="M:BepInEx.Logging.ILogListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
+            <summary>
+            Handle an incoming log event.
+            </summary>
+            <param name="sender">Log source that sent the event. Don't use; instead use <see cref="P:BepInEx.Logging.LogEventArgs.Source"/></param>
+            <param name="eventArgs">Information about the log message.</param>
+        </member>
+        <member name="T:BepInEx.Logging.ILogSource">
+            <summary>
+            Log source that can output log messages.
+            </summary>
+        </member>
+        <member name="P:BepInEx.Logging.ILogSource.SourceName">
+            <summary>
+            Name of the log source.
+            </summary>
+        </member>
+        <member name="E:BepInEx.Logging.ILogSource.LogEvent">
+            <summary>
+            Event that sends the log message. Call <see cref="M:System.EventHandler.Invoke(System.Object,System.EventArgs)"/> to send a log message.
             </summary>
         </member>
         <member name="T:BepInEx.Logging.LogEventArgs">
@@ -1288,33 +1254,6 @@
             <param name="level">The log level(s).</param>
             <returns>A console color associated with the highest log level supplied.</returns>
         </member>
-        <member name="T:BepInEx.Logging.ILogListener">
-            <summary>
-            A generic log listener that receives log events and can route them to some output (e.g. file, console, socket).
-            </summary>
-        </member>
-        <member name="M:BepInEx.Logging.ILogListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
-            <summary>
-            Handle an incoming log event.
-            </summary>
-            <param name="sender">Log source that sent the event. Don't use; instead use <see cref="P:BepInEx.Logging.LogEventArgs.Source"/></param>
-            <param name="eventArgs">Information about the log message.</param>
-        </member>
-        <member name="T:BepInEx.Logging.ILogSource">
-            <summary>
-            Log source that can output log messages.
-            </summary>
-        </member>
-        <member name="P:BepInEx.Logging.ILogSource.SourceName">
-            <summary>
-            Name of the log source.
-            </summary>
-        </member>
-        <member name="E:BepInEx.Logging.ILogSource.LogEvent">
-            <summary>
-            Event that sends the log message. Call <see cref="M:System.EventHandler.Invoke(System.Object,System.EventArgs)"/> to send a log message.
-            </summary>
-        </member>
         <member name="T:BepInEx.Logging.ManualLogSource">
             <summary>
             A generic, multi-purpose log source. Exposes simple API to manually emit logs.
@@ -1421,17 +1360,6 @@
             <inheritdoc />
         </member>
         <member name="M:BepInEx.Logging.TraceLogSource.TraceEvent(System.Diagnostics.TraceEventCache,System.String,System.Diagnostics.TraceEventType,System.Int32,System.String)">
-            <inheritdoc />
-        </member>
-        <member name="T:BepInEx.Logging.ConsoleLogListener">
-            <summary>
-            Logs entries using Unity specific outputs.
-            </summary>
-        </member>
-        <member name="M:BepInEx.Logging.ConsoleLogListener.LogEvent(System.Object,BepInEx.Logging.LogEventArgs)">
-            <inheritdoc />
-        </member>
-        <member name="M:BepInEx.Logging.ConsoleLogListener.Dispose">
             <inheritdoc />
         </member>
         <member name="T:BepInEx.Logging.UnityLogListener">
@@ -1597,6 +1525,78 @@
             <param name="workerCount">Number of worker threads. By default SystemInfo.processorCount is used.</param>
             <exception cref="T:System.Reflection.TargetInvocationException">An exception was thrown inside one of the threads, and the operation was aborted.</exception>
             <exception cref="T:System.ArgumentException">Need at least 1 workerCount.</exception>
+        </member>
+        <member name="T:BepInEx.UnityInput">
+            <summary>
+                Abstraction layer over Unity's input systems for use in universal plugins that need to use hotkeys.
+                It can use either Input or Unity.InputSystem, depending on what's available. Input is preferred.
+                WARNING: Use only inside of Unity's main thread!
+            </summary>
+        </member>
+        <member name="P:BepInEx.UnityInput.Current">
+            <summary>
+                Best currently supported input system.
+            </summary>
+        </member>
+        <member name="P:BepInEx.UnityInput.LegacyInputSystemAvailable">
+            <summary>
+                True if the Input class is not disabled.
+            </summary>
+        </member>
+        <member name="T:BepInEx.IInputSystem">
+            <summary>
+                Generic input system interface. Just barely good enough for hotkeys.
+            </summary>
+        </member>
+        <member name="P:BepInEx.IInputSystem.mousePosition">
+            <inheritdoc cref="P:UnityEngine.Input.mousePosition" />
+        </member>
+        <member name="P:BepInEx.IInputSystem.mouseScrollDelta">
+            <inheritdoc cref="P:UnityEngine.Input.mouseScrollDelta" />
+        </member>
+        <member name="P:BepInEx.IInputSystem.mousePresent">
+            <inheritdoc cref="P:UnityEngine.Input.mousePresent" />
+        </member>
+        <member name="P:BepInEx.IInputSystem.anyKey">
+            <inheritdoc cref="P:UnityEngine.Input.anyKey" />
+        </member>
+        <member name="P:BepInEx.IInputSystem.anyKeyDown">
+            <inheritdoc cref="P:UnityEngine.Input.anyKeyDown" />
+        </member>
+        <member name="P:BepInEx.IInputSystem.SupportedKeyCodes">
+            <summary>
+                All KeyCodes supported by the current input system.
+            </summary>
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKey(System.String)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKey(System.String)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKey(UnityEngine.KeyCode)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKey(UnityEngine.KeyCode)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKeyDown(System.String)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKeyDown(System.String)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKeyDown(UnityEngine.KeyCode)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKeyUp(System.String)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKeyUp(System.String)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetKeyUp(UnityEngine.KeyCode)">
+            <inheritdoc cref="M:UnityEngine.Input.GetKeyUp(UnityEngine.KeyCode)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetMouseButton(System.Int32)">
+            <inheritdoc cref="M:UnityEngine.Input.GetMouseButton(System.Int32)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetMouseButtonDown(System.Int32)">
+            <inheritdoc cref="M:UnityEngine.Input.GetMouseButtonDown(System.Int32)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.GetMouseButtonUp(System.Int32)">
+            <inheritdoc cref="M:UnityEngine.Input.GetMouseButtonUp(System.Int32)" />
+        </member>
+        <member name="M:BepInEx.IInputSystem.ResetInputAxes">
+            <inheritdoc cref="M:UnityEngine.Input.ResetInputAxes" />
         </member>
         <member name="T:BepInEx.Utility">
             <summary>
