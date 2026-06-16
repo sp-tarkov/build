@@ -88,7 +88,7 @@ jobs:
         run: |
           PROCEED="true"
           TAG="${{ steps.determine-context.outputs.target_tag }}"
-          REPOS=("https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git" "https://github.com/sp-tarkov/modules.git" "https://github.com/sp-tarkov/launcher.git")
+          REPOS=("https://github.com/sp-tarkov/server-csharp.git" "https://github.com/sp-tarkov/modules.git" "https://github.com/sp-tarkov/launcher.git")
           for REPO in "${REPOS[@]}"; do
             echo "Checking for tag $TAG in $REPO..."
             if ! git ls-remote --tags $REPO $TAG | grep -q $TAG; then
@@ -114,7 +114,7 @@ jobs:
           rm -rf /workspace/SPT/Build/server-csharp-core
           git init /workspace/SPT/Build/server-csharp-core
           cd /workspace/SPT/Build/server-csharp-core
-          git remote add origin https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git
+          git remote add origin https://github.com/sp-tarkov/server-csharp.git
           git config core.sparseCheckout true
           echo "Libraries/SPTarkov.Server.Assets/SPT_Data/configs/core.json" >> .git/info/sparse-checkout
 
@@ -191,7 +191,7 @@ jobs:
           TARGET="${{ needs.prepare.outputs.target_tag }}"
   
           echo "Cloning target: $TARGET"
-          git clone https://${{ secrets.SERVER_CSHARP_TOKEN }}@github.com/sp-tarkov/server-csharp.git --branch "$TARGET" --depth 1 "$serverPath"
+          git clone https://github.com/sp-tarkov/server-csharp.git --branch "$TARGET" --depth 1 "$serverPath"
   
           # Pull LFS files.
           cd "$serverPath"
