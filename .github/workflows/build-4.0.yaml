@@ -12,6 +12,9 @@ concurrency:
   group: spt-release-build-4.0
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
