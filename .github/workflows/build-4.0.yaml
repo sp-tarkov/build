@@ -1,4 +1,4 @@
-name: SPT Release Build - C#
+name: SPT Release Build - 4.0
 
 on:
   workflow_dispatch:
@@ -9,14 +9,14 @@ on:
         type: string
 
 concurrency:
-  group: spt-release-build-sharp
+  group: spt-release-build-4.0
   cancel-in-progress: true
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:2.1.0
+      image: refringe/spt-build-dotnet:2.2.0
     outputs:
       proceed: ${{ steps.check-existence.outputs.proceed }}
       branch_server: ${{ steps.determine-context.outputs.branch_server }}
@@ -36,18 +36,9 @@ jobs:
         run: |
           echo "Determining build context..."
 
-          # Determine the tag based on the event type
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG_NAME="${{ github.event.inputs.buildTag }}"
-          elif [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            TAG_NAME="${{ github.event.client_payload.tag }}"
-          else
-            echo "Unsupported event: ${{ github.event_name }}"
-            exit 1
-          fi
-
+          TAG_NAME="${{ github.event.inputs.buildTag }}"
           if [[ -z "$TAG_NAME" ]]; then
-            echo "No tag provided in event payload."
+            echo "No build tag provided."
             exit 1
           fi
 
@@ -174,7 +165,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:2.1.0
+      image: refringe/spt-build-dotnet:2.2.0
     outputs:
       server_commit: ${{ steps.commit-hash.outputs.server_commit }}
     steps:
@@ -285,7 +276,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:2.1.0
+      image: refringe/spt-build-dotnet:2.2.0
     steps:
       - name: Clone Modules
         id: clone-modules
@@ -354,7 +345,7 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:2.0.2
+      image: refringe/spt-build-dotnet:2.2.0
     steps:
       - name: Clone Launcher
         id: clone-launcher
@@ -390,7 +381,7 @@ jobs:
     needs: [prepare, build-server, build-modules, build-launcher]
     runs-on: ubuntu-latest
     container:
-      image: refringe/spt-build-dotnet:2.1.0
+      image: refringe/spt-build-dotnet:2.2.0
     steps:
       - name: Clean Directory
         shell: bash
@@ -440,7 +431,7 @@ jobs:
 
       - name: Merge Static Assets and Dynamic Files
         shell: bash
-        run: cp -rvf build/static-assets-csharp/. release/
+        run: cp -rvf build/build-4.0-assets/. release/
 
       - name: List Release Contents
         shell: bash

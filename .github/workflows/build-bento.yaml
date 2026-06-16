@@ -1,0 +1,292 @@
+name: SPT Release Build - Bento
+
+# Builds SPT 4.1.x (and later). This workflow delegates the entire clone, build, assemble, package pipeline to Bento,
+# run from its prebuilt container image. Bento clones all three repos at the tag, builds server (win+linux), launcher
+# (win+linux), and modules, overlays its static assets, and writes the .7z archive, manifest.json, and NuGet packages to
+# the output directory. This workflow guards the version, pushes the NuGet packages, and handles distribution by reading
+# Bento's output.
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildTag:
+        description: "The tag to build on"
+        required: true
+        type: string
+
+concurrency:
+  group: spt-release-build-bento
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      # The image produced by Bento's release.yml.
+      image: ghcr.io/sp-tarkov/bento:latest
+    steps:
+      - name: Determine Build Context
+        id: determine-context
+        shell: bash
+        run: |
+          echo "Determining build context..."
+
+          TAG_NAME="${{ github.event.inputs.buildTag }}"
+          if [[ -z "$TAG_NAME" ]]; then
+            echo "No build tag provided."
+            exit 1
+          fi
+
+          echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Target tag is $TAG_NAME"
+
+      - name: Guard SPT Version
+        id: guard
+        shell: bash
+        env:
+          TARGET_TAG: ${{ steps.determine-context.outputs.target_tag }}
+        run: |
+          # Derive the SPT version the same way Bento does: strip a leading v/V, then take the prefix up to the first
+          # dash (drops -BE / -BEM / date suffixes).
+          VERSION="${TARGET_TAG#[vV]}"
+          VERSION="${VERSION%%-*}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not parse a semver SPT version from tag '$TARGET_TAG'."
+            exit 1
+          fi
+
+          # Base-10 to avoid octal interpretation of any zero-padded segment.
+          MAJOR=$((10#${VERSION%%.*}))
+          REST="${VERSION#*.}"
+          MINOR=$((10#${REST%%.*}))
+
+          # This workflow builds SPT 4.1.x and later. Reject everything else.
+          if (( MAJOR < 4 )); then
+            echo "::error::SPT $VERSION (3.x) is no longer built by this repository."
+            exit 1
+          fi
+          if (( MAJOR == 4 && MINOR < 1 )); then
+            echo "::error::SPT $VERSION is a 4.0.x build. Build it with build-4.0.yaml."
+            exit 1
+          fi
+
+          echo "Accepted SPT version $VERSION (4.1+)."
+
+      - name: Build with Bento
+        id: bento
+        shell: bash
+        env:
+          MODULE_PACKAGE: ${{ secrets.MODULE_DOMAIN }}
+        run: |
+          OUTPUT_DIR="$GITHUB_WORKSPACE/dist"
+          rm -rf "$OUTPUT_DIR"
+
+          # Use the `--fresh` option to clone server-csharp, modules, and launcher at the tag and build them. Version
+          # and build type are derived from the tag. Using the `--no-config` option keeps it fully-flagged.
+          /opt/bento/bento \
+            --fresh \
+            --tag "${{ steps.determine-context.outputs.target_tag }}" \
+            --output "$OUTPUT_DIR" \
+            --no-config
+
+          echo "output_dir=$OUTPUT_DIR" >> $GITHUB_OUTPUT
+
+      - name: Read Build Manifest
+        id: manifest
+        shell: bash
+        run: |
+          MANIFEST="${{ steps.bento.outputs.output_dir }}/manifest.json"
+          if [[ ! -f "$MANIFEST" ]]; then
+            echo "::error::manifest.json not found at $MANIFEST"
+            exit 1
+          fi
+
+          echo "Build manifest:"
+          cat "$MANIFEST"
+          echo ""
+
+          ARCHIVE_NAME=$(jq -r '.archive.name' "$MANIFEST")
+
+          {
+            echo "build_type=$(jq -r '.buildType' "$MANIFEST")"
+            echo "spt_version=$(jq -r '.sptVersion' "$MANIFEST")"
+            echo "client_version=$(jq -r '.clientVersion' "$MANIFEST")"
+            echo "nuget_version=$(jq -r '.nuget.version' "$MANIFEST")"
+            echo "build_name=$ARCHIVE_NAME"
+            echo "base_name=${ARCHIVE_NAME%.7z}"
+            echo "file_size_mb=$(jq -r '.archive.sizeDisplay' "$MANIFEST")"
+            echo "file_hash=$(jq -r '.archive.md5Base64' "$MANIFEST")"
+          } >> $GITHUB_OUTPUT
+
+      - name: Publish NuGet Packages
+        continue-on-error: true
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          # Bento packs the server libraries but never pushes them.
+          PKG_DIR="${{ steps.bento.outputs.output_dir }}/packages"
+          if [ ! -d "$PKG_DIR" ]; then
+            echo "No packages directory at $PKG_DIR, skipping NuGet publish."
+            exit 0
+          fi
+
+          shopt -s nullglob
+          PACKAGES=("$PKG_DIR"/*.nupkg)
+          if [ ${#PACKAGES[@]} -eq 0 ]; then
+            echo "No .nupkg files found, skipping NuGet publish."
+            exit 0
+          fi
+
+          for PACKAGE_FILE in "${PACKAGES[@]}"; do
+            echo "Publishing $(basename "$PACKAGE_FILE")..."
+            if dotnet nuget push "$PACKAGE_FILE" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate; then
+              echo "Successfully published $(basename "$PACKAGE_FILE")"
+            else
+              echo "Failed to publish $(basename "$PACKAGE_FILE")"
+            fi
+          done
+          echo "NuGet package publishing completed."
+
+      - name: R2 Upload
+        # NOTE: Bento's manifest reports the build type in all-caps ('RELEASE'), so this step never runs. This is
+        # deliberate to prevent accidental uploads to the R2 bucket WHICH WILL OVERWRITE THE EXISTING RELEASE AND PUSH
+        # IT TO THE LIVE LAUNCHER. Adjust the `if` condition before launching SPT 4.1.
+        if: steps.manifest.outputs.build_type == 'do-not-release'
+        working-directory: ${{ steps.bento.outputs.output_dir }}
+        env:
+          SPT_VERSION: ${{ steps.manifest.outputs.spt_version }}
+          CLIENT_VERSION: ${{ steps.manifest.outputs.client_version }}
+          FILE_HASH: ${{ steps.manifest.outputs.file_hash }}
+          BUILD_NAME: ${{ steps.manifest.outputs.build_name }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_FRONT: ${{ secrets.R2_FRONT }}
+        shell: bash
+        run: |
+          # Configure Rclone
+          echo '[r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = '"$R2_ACCESS_KEY"'
+          secret_access_key = '"$R2_SECRET_ACCESS_KEY"'
+          region = auto
+          endpoint = '"$R2_ENDPOINT"'
+          acl = public-read' > ./rclone.conf
+
+          # Generate Release JSON File
+          echo "{
+            \"AkiVersion\": \"${SPT_VERSION}\",
+            \"ClientVersion\": \"${CLIENT_VERSION}\",
+            \"Mirrors\": [{
+              \"DownloadUrl\": \"${R2_FRONT}/${BUILD_NAME}\",
+              \"Hash\": \"${FILE_HASH}\"
+            }]
+          }" > ./release.json
+
+          echo "Current Local Directory:"
+          ls -lah
+
+          echo "Current Remote Directory:"
+          rclone ls r2:${R2_BUCKET_NAME} --config ./rclone.conf
+
+          # Remove old .7z files from the bucket
+          rclone lsf r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-only --include="*.7z" --absolute > files-to-remove.txt
+          echo "Files to be deleted:"
+          cat files-to-remove.txt
+          rclone delete r2:${R2_BUCKET_NAME} --config ./rclone.conf --files-from=files-to-remove.txt --max-depth=1 -vv
+
+          # Upload the .7z file using rclone with the above config
+          rclone copy "./${BUILD_NAME}" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
+
+          # Upload the JSON file using rclone with the above config
+          rclone copy "./release.json" r2:${R2_BUCKET_NAME} --config ./rclone.conf -vv
+
+          echo "R2 Upload completed."
+
+      - name: Upload Release to HTTPS Source
+        id: upload-https-7z
+        working-directory: ${{ steps.bento.outputs.output_dir }}
+        shell: bash
+        run: |
+          sshpass -p "${{ secrets.SFTP_PASSWORD }}" scp -v -o "Port=${{ secrets.SFTP_PORT }}" -o "ConnectTimeout=20" -o "StrictHostKeyChecking=no" "${{ steps.manifest.outputs.build_name }}" ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/public/builds
+          echo "link_https=${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.manifest.outputs.build_name }}" >> $GITHUB_OUTPUT
+          echo "HTTPS Upload completed: ${{ secrets.SFTP_MIRROR_LINK }}/builds/${{ steps.manifest.outputs.build_name }}"
+
+      - name: Post Build Info to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_SHARP_URL }}
+          BUILD_TYPE: ${{ steps.manifest.outputs.build_type }}
+          BASE_NAME: ${{ steps.manifest.outputs.base_name }}
+          BUILD_NAME: ${{ steps.manifest.outputs.build_name }}
+          FILE_SIZE_MB: ${{ steps.manifest.outputs.file_size_mb }}
+          FILE_HASH: ${{ steps.manifest.outputs.file_hash }}
+          LINK_HTTPS: ${{ steps.upload-https-7z.outputs.link_https }}
+        shell: bash
+        run: |
+          UPPER_BUILD_TYPE=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
+          FOOTER_MESSAGES=("MadByte asks: is this compatable on Linux?" "You look great today!" "Powered by coffee" "Life's too short to remove USB safely" "Have you tried turning it off and on again?" "In Chomp we trust" "Beep boop, I'm a bot - Waffle" "Keep calm and commit your code" "This isn't a bug, it's an undocumented feature" "Please direct all support requests to Drakia" "Meaw" "If this doesnt work it's because of Alex" "Chomp approves of this message" "Chomp is life, Chomp is love" "Drakia denies all involvement" "Drakia left this note here just to confuse you" "CWX is the reason we can't have nice things" "CWX voted against this message" "Powered by caffeine, chaos, and Chomp" "RaiRai says hi-hi" "RaiRai wants to remind you that sarcasm is a skill" "Refringe just wobbled" "Refringe is watching" "Refringe rewrote this embed thirty times" "Refringe, professional button-pusher extraordinaire" "Sarix would like you to reconsider your choices" "Sarix just gave this embed a 7/10" "Waffle has entered the chat, and now it's weird" "Waffle is busy stacking layers of chaos" "Waffle would like to speak to the manager of logic" "Have you tried our new FAFO bot?" "Say NO to Docker" "Careful, Arch just made something async" "ERR ChatGPT 4 Credits Expired" "We should rename General chat to off-topic" "I'm an advanced AI that cost several billion dollars to train and they have me building test releases" "uwu" "big if true")
+          FOOTER_MESSAGE="${FOOTER_MESSAGES[$RANDOM % ${#FOOTER_MESSAGES[@]}]}"
+          TIMESTAMP=$(date --iso-8601=seconds)
+          MODS=""
+
+          if [ "$BUILD_TYPE" == "BLEEDINGEDGE" ]; then
+            EMBED_COLOR=15548997
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
+            MODS='disabled'
+          elif [ "$BUILD_TYPE" == "BLEEDINGEDGEMODS" ]; then
+            EMBED_COLOR=15548997
+            EMBED_DESCRIPTION='A new bleeding edge build is available. These are strictly for testing issues *and not for general gameplay*. 7-Zip is *required* to extract the release. The download link is temporary.'
+            MODS='enabled'
+          elif [ "$BUILD_TYPE" == "DEBUG" ]; then
+            EMBED_COLOR=2123412
+            EMBED_DESCRIPTION=$'A new debug build is available. These have extra-verbose logging enabled *for testing*. 7-Zip is *required* to extract the release. The download link is temporary.'
+            MODS='enabled'
+          else
+            EMBED_COLOR=5763719
+            EMBED_DESCRIPTION=$'A new *release* build has been published. Get to testing, nerds.'
+            MODS='enabled'
+          fi
+
+          fields_json='[
+            {"name": "Name", "value": "'"$BASE_NAME"'"},
+            {"name": "Build Type", "value": "'"$BUILD_TYPE"'", "inline": true},
+            {"name": "Mods", "value": "'"$MODS"'", "inline": true},
+            {"name": "File Size", "value": "'"$FILE_SIZE_MB"'", "inline": true},
+            {"name": "File Hash", "value": "'"$FILE_HASH"'"},
+            {"name": "Download", "value": "'"$LINK_HTTPS"'"}
+          ]'
+
+          payload=$(jq -n \
+            --argjson fields "$fields_json" \
+            --arg EMBED_DESCRIPTION "$EMBED_DESCRIPTION" \
+            --argjson EMBED_COLOR "$EMBED_COLOR" \
+            --arg FOOTER_MESSAGE "$FOOTER_MESSAGE" \
+            --arg TIMESTAMP "$TIMESTAMP" \
+            '{
+              "content": $EMBED_DESCRIPTION,
+              "embeds": [
+                {
+                  "title": "Build Information",
+                  "color": $EMBED_COLOR,
+                  "fields": $fields,
+                  "footer": {"text": $FOOTER_MESSAGE, "icon_url": "https://i.imgur.com/28JJJec.png"},
+                  "timestamp": $TIMESTAMP
+                }
+              ],
+              "username": "BuildBot",
+              "avatar_url": "https://i.imgur.com/28JJJec.png"
+            }')
+          echo "$payload" > payload_discord.json
+
+          echo "Payload Generated:"
+          cat payload_discord.json
+
+          echo "Sending Payload..."
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            --data-binary @payload_discord.json \
+            $DISCORD_WEBHOOK_URL
