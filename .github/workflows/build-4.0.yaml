@@ -45,6 +45,39 @@ jobs:
           echo "target_tag=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "Target tag is $TAG_NAME"
 
+      - name: Guard SPT Version
+        id: guard
+        shell: bash
+        env:
+          TARGET_TAG: ${{ steps.determine-context.outputs.target_tag }}
+        run: |
+          # Derive the SPT version the same way Bento does: strip a leading v/V, then take the prefix
+          # up to the first dash (drops -BE / -BEM / date suffixes).
+          VERSION="${TARGET_TAG#[vV]}"
+          VERSION="${VERSION%%-*}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not parse a semver SPT version from tag '$TARGET_TAG'."
+            exit 1
+          fi
+
+          # Base-10 to avoid octal interpretation of any zero-padded segment.
+          MAJOR=$((10#${VERSION%%.*}))
+          REST="${VERSION#*.}"
+          MINOR=$((10#${REST%%.*}))
+
+          # This workflow builds SPT 4.0.x only. Route everything else away.
+          if (( MAJOR < 4 )); then
+            echo "::error::SPT $VERSION (3.x) is no longer built by this repository."
+            exit 1
+          fi
+          if (( MAJOR > 4 || ( MAJOR == 4 && MINOR != 0 ) )); then
+            echo "::error::SPT $VERSION is a 4.1+ build. Build it with build-bento.yaml."
+            exit 1
+          fi
+
+          echo "Accepted SPT version $VERSION (4.0.x)."
+
       - name: Determine Build Type
         id: determine-build-type
         shell: bash
