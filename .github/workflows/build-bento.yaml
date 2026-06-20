@@ -128,26 +128,34 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          # Bento packs the server libraries but never pushes them.
+          # Bento packs the server libraries but never pushes them. Publish only the packages Bento curated in the
+          # manifest, not every .nupkg in the directory.
+          MANIFEST="${{ steps.bento.outputs.output_dir }}/manifest.json"
           PKG_DIR="${{ steps.bento.outputs.output_dir }}/packages"
-          if [ ! -d "$PKG_DIR" ]; then
-            echo "No packages directory at $PKG_DIR, skipping NuGet publish."
+          VERSION="${{ steps.manifest.outputs.nuget_version }}"
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "No manifest at $MANIFEST, skipping NuGet publish."
             exit 0
           fi
 
-          shopt -s nullglob
-          PACKAGES=("$PKG_DIR"/*.nupkg)
+          mapfile -t PACKAGES < <(jq -r '.nuget.packages[]' "$MANIFEST")
           if [ ${#PACKAGES[@]} -eq 0 ]; then
-            echo "No .nupkg files found, skipping NuGet publish."
+            echo "Manifest lists no packages, skipping NuGet publish."
             exit 0
           fi
 
-          for PACKAGE_FILE in "${PACKAGES[@]}"; do
-            echo "Publishing $(basename "$PACKAGE_FILE")..."
-            if dotnet nuget push "$PACKAGE_FILE" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate; then
-              echo "Successfully published $(basename "$PACKAGE_FILE")"
+          for PACKAGE in "${PACKAGES[@]}"; do
+            PACKAGE_FILE="$PKG_DIR/${PACKAGE}.${VERSION}.nupkg"
+            if [ -f "$PACKAGE_FILE" ]; then
+              echo "Publishing ${PACKAGE}.${VERSION}.nupkg..."
+              if dotnet nuget push "$PACKAGE_FILE" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate; then
+                echo "Successfully published $PACKAGE"
+              else
+                echo "Failed to publish $PACKAGE"
+              fi
             else
-              echo "Failed to publish $(basename "$PACKAGE_FILE")"
+              echo "Warning: $PACKAGE_FILE not found, skipping."
             fi
           done
           echo "NuGet package publishing completed."
