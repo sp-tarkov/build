@@ -122,29 +122,6 @@ jobs:
             echo "file_hash=$(jq -r '.archive.md5Base64' "$MANIFEST")"
           } >> $GITHUB_OUTPUT
 
-      - name: Inspect Assets package (debug)
-        continue-on-error: true
-        shell: bash
-        run: |
-          PKG_DIR="${{ steps.bento.outputs.output_dir }}/packages"
-          PKG=$(ls "$PKG_DIR"/SPTarkov.Server.Assets.*.nupkg 2>/dev/null | head -n1)
-          if [ -z "$PKG" ]; then echo "No Assets package found."; exit 0; fi
-          echo "Package: $PKG"
-
-          echo "=== total entries (Windows pack is 1029) ==="
-          7z l -slt "$PKG" | sed -n 's/^Path = //p' | grep -c .
-
-          echo "=== physical duplicates (case + separator normalized) ==="
-          7z l -slt "$PKG" | sed -n 's/^Path = //p' \
-            | awk '{ n=$0; gsub(/\\/,"/",n); k=tolower(n); c[k]++; o[k]=o[k] ORS $0 }
-                   END { for (k in c) if (c[k]>1) printf "DUP x%d:%s\n", c[k], o[k] }'
-
-          echo "=== duplicate <files include> in .nuspec ==="
-          7z e -so "$PKG" '*.nuspec' 2>/dev/null \
-            | grep -o 'include="[^"]*"' | sort | uniq -d
-
-          echo "Done."
-
       - name: Publish NuGet Packages
         continue-on-error: true
         shell: bash
