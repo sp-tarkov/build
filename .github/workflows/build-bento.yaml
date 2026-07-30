@@ -161,10 +161,10 @@ jobs:
           echo "NuGet package publishing completed."
 
       - name: R2 Upload
-        # NOTE: Bento's manifest reports the build type in all-caps ('RELEASE'), so this step never runs. This is
-        # deliberate to prevent accidental uploads to the R2 bucket WHICH WILL OVERWRITE THE EXISTING RELEASE AND PUSH
-        # IT TO THE LIVE LAUNCHER. Adjust the `if` condition before launching SPT 4.1.
-        if: steps.manifest.outputs.build_type == 'do-not-release'
+        # NOTE: This step is LIVE for release builds. Bento's manifest reports the build type in all-caps, so a plain
+        # semver tag produces 'RELEASE' and runs this step, WHICH DELETES THE EXISTING RELEASE FROM THE R2 BUCKET AND
+        # PUSHES THE NEW BUILD TO THE LIVE LAUNCHER. Bleeding edge and debug builds never match and are unaffected.
+        if: steps.manifest.outputs.build_type == 'RELEASE'
         working-directory: ${{ steps.bento.outputs.output_dir }}
         env:
           SPT_VERSION: ${{ steps.manifest.outputs.spt_version }}
